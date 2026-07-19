@@ -9,7 +9,7 @@ import streamlit as st
 
 from controle_financeiro.models import (
     FixedCostInput,
-    MonthlyCloseInput,
+    MonthlyIncomeInput,
     VariableExpenseInput,
     cycle_window,
 )
@@ -70,8 +70,8 @@ def main() -> None:
     col3.metric("Margem projetada", _money(summary.projected_margin))
     st.write(f"Status: **{summary.status.value}**")
 
-    tab_fixed, tab_variable, tab_close = st.tabs(
-        ["Custos fixos", "Despesas variaveis", "Fechamento mensal"]
+    tab_fixed, tab_variable, tab_income = st.tabs(
+        ["Custos fixos", "Despesas variaveis", "Renda do ciclo"]
     )
 
     with tab_fixed:
@@ -310,39 +310,33 @@ def main() -> None:
         ]
         st.dataframe(variable_table, hide_index=True)
 
-    with tab_close:
-        existing_monthly_close = service.get_monthly_close(cycle_key)
+    with tab_income:
+        existing_monthly_income = service.get_monthly_income(cycle_key)
 
-        st.subheader("Cadastrar ou editar fechamento mensal")
-        with st.form("month_close_form"):
+        st.subheader("Cadastrar ou editar renda do ciclo")
+        st.caption("Registre a renda e a saida de caixa para reserva deste ciclo. Nao ha uma etapa de fechamento: o ciclo trava automaticamente apos a data limite.")
+        with st.form("monthly_income_form"):
             income_total = st.number_input(
                 "Renda total",
                 min_value=0.0,
                 step=100.0,
-                value=float(existing_monthly_close.income_total) if existing_monthly_close else 0.0,
-            )
-            final_invoice_total = st.number_input(
-                "Total final da fatura",
-                min_value=0.0,
-                step=10.0,
-                value=float(existing_monthly_close.final_invoice_total) if existing_monthly_close else 0.0,
+                value=float(existing_monthly_income.income_total) if existing_monthly_income else 0.0,
             )
             reserve_cash_outflow = st.number_input(
                 "Saida de caixa para reserva",
                 min_value=0.0,
                 step=10.0,
-                value=float(existing_monthly_close.reserve_cash_outflow) if existing_monthly_close else 0.0,
+                value=float(existing_monthly_income.reserve_cash_outflow) if existing_monthly_income else 0.0,
             )
             submitted = st.form_submit_button(
-                "Atualizar fechamento mensal" if existing_monthly_close else "Salvar fechamento mensal"
+                "Atualizar renda do ciclo" if existing_monthly_income else "Salvar renda do ciclo"
             )
             if submitted:
                 try:
-                    service.save_monthly_close(
+                    service.save_monthly_income(
                         cycle_key,
-                        MonthlyCloseInput(
+                        MonthlyIncomeInput(
                             income_total=Decimal(str(income_total)),
-                            final_invoice_total=Decimal(str(final_invoice_total)),
                             reserve_cash_outflow=Decimal(str(reserve_cash_outflow)),
                         ),
                         today,
@@ -351,22 +345,21 @@ def main() -> None:
                 except (ValueError, DomainLockError) as exc:
                     st.error(str(exc))
 
-        monthly_close = service.get_monthly_close(cycle_key)
+        monthly_income = service.get_monthly_income(cycle_key)
 
-        st.subheader("Fechamento mensal do ciclo")
-        if monthly_close is None:
-            st.info("Ainda nao ha fechamento mensal para este ciclo.")
+        st.subheader("Renda do ciclo")
+        if monthly_income is None:
+            st.info("Ainda nao ha renda registrada para este ciclo.")
         else:
-            close_table = [
+            income_table = [
                 {
-                    "id": monthly_close.id,
-                    "income_total": _money(monthly_close.income_total),
-                    "final_invoice_total": _money(monthly_close.final_invoice_total),
-                    "reserve_cash_outflow": _money(monthly_close.reserve_cash_outflow),
-                    "closed_at": _datetime_label(monthly_close.closed_at),
+                    "id": monthly_income.id,
+                    "income_total": _money(monthly_income.income_total),
+                    "reserve_cash_outflow": _money(monthly_income.reserve_cash_outflow),
+                    "updated_at": _datetime_label(monthly_income.updated_at),
                 }
             ]
-            st.dataframe(close_table, hide_index=True)
+            st.dataframe(income_table, hide_index=True)
 
     st.caption(f"Projeto: {Path(__file__).resolve().parent.parent.parent.name}")
 

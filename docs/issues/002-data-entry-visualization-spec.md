@@ -12,7 +12,7 @@ Deliver the next MVP slice so users can create, edit, and review cycle data in o
 
 - Create and edit fixed costs in the selected cycle.
 - Create and edit variable expenses in the selected cycle.
-- Create and edit monthly close values until cycle lock.
+- Create and edit month income (income total and reserve cash outflow) until cycle lock.
 - Show per-entity table views in the UI for the selected cycle.
 - Add basic filters/sorting to improve data inspection.
 
@@ -24,6 +24,7 @@ Deliver the next MVP slice so users can create, edit, and review cycle data in o
 - Expense categorization.
 - Multi-user support and authentication.
 - Weekly invoice check-in (removed from scope entirely; see amendment in [docs/issues/001-data-model-spec.md](001-data-model-spec.md)).
+- Final invoice total tracking as part of month income (removed; see amendment in [docs/issues/001-data-model-spec.md](001-data-model-spec.md)).
 
 ## Business Rules
 
@@ -34,9 +35,9 @@ Deliver the next MVP slice so users can create, edit, and review cycle data in o
 
 ## Acceptance Criteria
 
-- [ ] Users can create fixed costs, variable expenses, and monthly close from the UI.
+- [ ] Users can create fixed costs, variable expenses, and month income from the UI.
 - [ ] Users can edit fixed costs and variable expenses from the UI and changes persist correctly.
-- [ ] Users can update monthly close while cycle is unlocked.
+- [ ] Users can update month income while cycle is unlocked.
 - [ ] Each tab shows a table with cycle data and supports basic filter/sort controls.
 - [ ] Lock violations are shown as explicit UI errors without crashing the page.
 - [ ] Contract tests cover at least one edit flow and one lock-rejection flow used by the UI.

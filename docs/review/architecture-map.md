@@ -21,7 +21,7 @@ Provide a fast, high-confidence understanding of the current implementation flow
 2. Application Service Layer
 - [src/controle_financeiro/service.py](../../src/controle_financeiro/service.py)
 - Responsibilities:
-  - Expose use-case methods (`add_*`, `update_*`, `list_*`, `save_monthly_close`).
+  - Expose use-case methods (`add_*`, `update_*`, `list_*`, `save_monthly_income`).
   - Aggregate month summary data from repository reads.
 
 3. Domain Model Layer

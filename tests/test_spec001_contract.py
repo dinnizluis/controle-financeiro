@@ -7,7 +7,7 @@ from sqlalchemy import select
 from controle_financeiro.models import (
     FixedCostInput,
     MonthSummaryStatus,
-    MonthlyCloseInput,
+    MonthlyIncomeInput,
     VariableExpenseInput,
     cycle_window,
 )
@@ -109,7 +109,7 @@ def test_variable_expense_update_is_blocked_after_lock(tmp_path):
         )
 
 
-def test_monthly_close_can_update_until_end_date_then_locks(tmp_path):
+def test_monthly_income_can_update_until_end_date_then_locks(tmp_path):
     repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
     service = BudgetService(repository)
 
@@ -118,34 +118,31 @@ def test_monthly_close_can_update_until_end_date_then_locks(tmp_path):
         VariableExpenseInput(description="Cash only", amount=Decimal("120.00")),
         current_date=date(2026, 8, 20),
     )
-    service.save_monthly_close(
+    service.save_monthly_income(
         "2026-07",
-        MonthlyCloseInput(
+        MonthlyIncomeInput(
             income_total=Decimal("10000.00"),
-            final_invoice_total=Decimal("3500.00"),
             reserve_cash_outflow=Decimal("200.00"),
         ),
         current_date=date(2026, 8, 28),
     )
-    updated = service.save_monthly_close(
+    updated = service.save_monthly_income(
         "2026-07",
-        MonthlyCloseInput(
+        MonthlyIncomeInput(
             income_total=Decimal("10000.00"),
-            final_invoice_total=Decimal("3600.00"),
             reserve_cash_outflow=Decimal("250.00"),
         ),
         current_date=date(2026, 8, 28),
     )
 
-    assert updated.final_invoice_total == Decimal("3600.00")
+    assert updated.reserve_cash_outflow == Decimal("250.00")
 
     with pytest.raises(DomainLockError):
-        service.save_monthly_close(
+        service.save_monthly_income(
             "2026-07",
-            MonthlyCloseInput(
+            MonthlyIncomeInput(
                 income_total=Decimal("10000.00"),
-                final_invoice_total=Decimal("3650.00"),
-                reserve_cash_outflow=Decimal("250.00"),
+                reserve_cash_outflow=Decimal("300.00"),
             ),
             current_date=date(2026, 8, 29),
         )
@@ -160,49 +157,46 @@ def test_invalid_cycle_key_month_is_rejected(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("close_payload", "expected_status", "expected_margin"),
+    ("income_payload", "expected_status", "expected_margin"),
     [
         (
-            MonthlyCloseInput(
+            MonthlyIncomeInput(
                 income_total=Decimal("1000.00"),
-                final_invoice_total=Decimal("900.00"),
-                reserve_cash_outflow=Decimal("0.00"),
+                reserve_cash_outflow=Decimal("900.00"),
             ),
             MonthSummaryStatus.HEALTHY,
             Decimal("100.00"),
         ),
         (
-            MonthlyCloseInput(
+            MonthlyIncomeInput(
                 income_total=Decimal("1000.00"),
-                final_invoice_total=Decimal("1050.00"),
-                reserve_cash_outflow=Decimal("0.00"),
+                reserve_cash_outflow=Decimal("1050.00"),
             ),
             MonthSummaryStatus.ATTENTION,
             Decimal("-50.00"),
         ),
         (
-            MonthlyCloseInput(
+            MonthlyIncomeInput(
                 income_total=Decimal("1000.00"),
-                final_invoice_total=Decimal("1060.00"),
-                reserve_cash_outflow=Decimal("0.00"),
+                reserve_cash_outflow=Decimal("1060.00"),
             ),
             MonthSummaryStatus.CRITICAL,
             Decimal("-60.00"),
         ),
     ],
 )
-def test_summary_status_thresholds_after_monthly_close(tmp_path, close_payload, expected_status, expected_margin):
+def test_summary_status_thresholds_after_monthly_income(tmp_path, income_payload, expected_status, expected_margin):
     repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
     service = BudgetService(repository)
 
-    service.save_monthly_close("2026-07", close_payload, current_date=date(2026, 8, 28))
+    service.save_monthly_income("2026-07", income_payload, current_date=date(2026, 8, 28))
 
     summary = service.get_summary("2026-07")
     assert summary.status == expected_status
     assert summary.projected_margin == expected_margin
 
 
-def test_summary_status_open_without_monthly_close(tmp_path):
+def test_summary_status_open_without_monthly_income(tmp_path):
     repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
     service = BudgetService(repository)
 

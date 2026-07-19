@@ -116,12 +116,11 @@ class VariableExpenseInput(BaseModel):
         return normalized
 
 
-class MonthlyCloseInput(BaseModel):
+class MonthlyIncomeInput(BaseModel):
     income_total: Decimal
-    final_invoice_total: Decimal
     reserve_cash_outflow: Decimal = Decimal("0.00")
 
-    @field_validator("income_total", "final_invoice_total", "reserve_cash_outflow")
+    @field_validator("income_total", "reserve_cash_outflow")
     @classmethod
     def validate_amount(cls, value: Decimal) -> Decimal:
         normalized = as_money(value)
@@ -164,13 +163,13 @@ class VariableExpenseRecord:
 
 
 @dataclass(frozen=True, slots=True)
-class MonthlyCloseRecord:
+class MonthlyIncomeRecord:
     id: str
     month_cycle_id: str
     income_total: Decimal
-    final_invoice_total: Decimal
     reserve_cash_outflow: Decimal
-    closed_at: datetime
+    created_at: datetime
+    updated_at: datetime
 
 
 @dataclass(frozen=True, slots=True)
