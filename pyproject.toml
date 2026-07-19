@@ -5,15 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "controle-financeiro"
 version = "0.1.0"
-description = "Personal budget project setup with AI-first workflow"
+description = "Personal budget MVP with cycle-based planning"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "streamlit>=1.37",
+  "sqlalchemy>=2.0",
+  "pydantic>=2.8",
 ]
 
 [project.optional-dependencies]
 dev = [
+  "pytest>=8.0",
   "ruff>=0.5",
 ]
 
@@ -25,3 +28,6 @@ where = ["src"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

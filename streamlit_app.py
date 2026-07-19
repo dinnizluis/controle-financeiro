@@ -9,8 +9,8 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from controle_financeiro.app import main
-
 
 if __name__ == "__main__":
+    from controle_financeiro.app import main
+
     main()
