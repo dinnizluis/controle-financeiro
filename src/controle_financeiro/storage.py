@@ -20,6 +20,7 @@ from controle_financeiro.models import (
     WeeklyCheckinInput,
     WeeklyCheckinRecord,
     cycle_window,
+    parse_month_key,
     utc_now,
 )
 
@@ -120,8 +121,13 @@ class SqliteBudgetRepository:
     def _session(self) -> Session:
         return self.session_factory()
 
+    def _get_cycle(self, session: Session, cycle_key: str) -> MonthCycleORM | None:
+        # Keep read and write behavior consistent for invalid cycle keys.
+        parse_month_key(cycle_key)
+        return session.scalar(select(MonthCycleORM).where(MonthCycleORM.cycle_key == cycle_key))
+
     def _ensure_cycle(self, session: Session, cycle_key: str) -> MonthCycleORM:
-        cycle = session.scalar(select(MonthCycleORM).where(MonthCycleORM.cycle_key == cycle_key))
+        cycle = self._get_cycle(session, cycle_key)
         if cycle is not None:
             return cycle
 
@@ -214,13 +220,14 @@ class SqliteBudgetRepository:
 
     def list_fixed_costs(self, cycle_key: str) -> list[FixedCostRecord]:
         with self._session() as session:
-            cycle = self._ensure_cycle(session, cycle_key)
+            cycle = self._get_cycle(session, cycle_key)
+            if cycle is None:
+                return []
             rows = session.scalars(
                 select(FixedCostORM)
                 .where(FixedCostORM.month_cycle_id == cycle.id)
                 .order_by(FixedCostORM.created_at.desc())
             ).all()
-            session.commit()
             return [
                 FixedCostRecord(
                     id=row.id,
@@ -286,13 +293,14 @@ class SqliteBudgetRepository:
 
     def list_variable_expenses(self, cycle_key: str) -> list[VariableExpenseRecord]:
         with self._session() as session:
-            cycle = self._ensure_cycle(session, cycle_key)
+            cycle = self._get_cycle(session, cycle_key)
+            if cycle is None:
+                return []
             rows = session.scalars(
                 select(VariableExpenseORM)
                 .where(VariableExpenseORM.month_cycle_id == cycle.id)
                 .order_by(VariableExpenseORM.created_at.desc())
             ).all()
-            session.commit()
             return [
                 VariableExpenseRecord(
                     id=row.id,
@@ -348,13 +356,14 @@ class SqliteBudgetRepository:
 
     def list_weekly_checkins(self, cycle_key: str) -> list[WeeklyCheckinRecord]:
         with self._session() as session:
-            cycle = self._ensure_cycle(session, cycle_key)
+            cycle = self._get_cycle(session, cycle_key)
+            if cycle is None:
+                return []
             rows = session.scalars(
                 select(WeeklyCheckinORM)
                 .where(WeeklyCheckinORM.month_cycle_id == cycle.id)
                 .order_by(WeeklyCheckinORM.checkin_date.desc(), WeeklyCheckinORM.created_at.desc())
             ).all()
-            session.commit()
             return [
                 WeeklyCheckinRecord(
                     id=row.id,
@@ -412,9 +421,10 @@ class SqliteBudgetRepository:
 
     def get_monthly_close(self, cycle_key: str) -> MonthlyCloseRecord | None:
         with self._session() as session:
-            cycle = self._ensure_cycle(session, cycle_key)
+            cycle = self._get_cycle(session, cycle_key)
+            if cycle is None:
+                return None
             row = session.scalar(select(MonthlyCloseORM).where(MonthlyCloseORM.month_cycle_id == cycle.id))
-            session.commit()
             if row is None:
                 return None
             return MonthlyCloseRecord(

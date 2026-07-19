@@ -2,16 +2,18 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 
 from controle_financeiro.models import (
     FixedCostInput,
+    MonthSummaryStatus,
     MonthlyCloseInput,
     VariableExpenseInput,
     WeeklyCheckinInput,
     cycle_window,
 )
 from controle_financeiro.service import BudgetService
-from controle_financeiro.storage import DomainLockError, SqliteBudgetRepository
+from controle_financeiro.storage import DomainLockError, MonthCycleORM, SqliteBudgetRepository
 
 
 def test_cycle_window_matches_business_day_rule():
@@ -122,3 +124,75 @@ def test_monthly_close_can_update_until_end_date_then_locks(tmp_path):
             ),
             current_date=date(2026, 8, 29),
         )
+
+
+def test_invalid_cycle_key_month_is_rejected(tmp_path):
+    repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
+    service = BudgetService(repository)
+
+    with pytest.raises(ValueError):
+        service.get_summary("2026-13")
+
+
+@pytest.mark.parametrize(
+    ("close_payload", "expected_status", "expected_margin"),
+    [
+        (
+            MonthlyCloseInput(
+                income_total=Decimal("1000.00"),
+                final_invoice_total=Decimal("900.00"),
+                reserve_cash_outflow=Decimal("0.00"),
+            ),
+            MonthSummaryStatus.HEALTHY,
+            Decimal("100.00"),
+        ),
+        (
+            MonthlyCloseInput(
+                income_total=Decimal("1000.00"),
+                final_invoice_total=Decimal("1050.00"),
+                reserve_cash_outflow=Decimal("0.00"),
+            ),
+            MonthSummaryStatus.ATTENTION,
+            Decimal("-50.00"),
+        ),
+        (
+            MonthlyCloseInput(
+                income_total=Decimal("1000.00"),
+                final_invoice_total=Decimal("1060.00"),
+                reserve_cash_outflow=Decimal("0.00"),
+            ),
+            MonthSummaryStatus.CRITICAL,
+            Decimal("-60.00"),
+        ),
+    ],
+)
+def test_summary_status_thresholds_after_monthly_close(tmp_path, close_payload, expected_status, expected_margin):
+    repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
+    service = BudgetService(repository)
+
+    service.save_monthly_close("2026-07", close_payload, current_date=date(2026, 8, 28))
+
+    summary = service.get_summary("2026-07")
+    assert summary.status == expected_status
+    assert summary.projected_margin == expected_margin
+
+
+def test_summary_status_open_without_monthly_close(tmp_path):
+    repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
+    service = BudgetService(repository)
+
+    summary = service.get_summary("2026-07")
+
+    assert summary.status == MonthSummaryStatus.OPEN
+
+
+def test_reading_summary_does_not_create_cycle(tmp_path):
+    repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
+    service = BudgetService(repository)
+
+    service.get_summary("2026-07")
+
+    with repository._session() as session:
+        cycles = session.scalars(select(MonthCycleORM)).all()
+
+    assert cycles == []

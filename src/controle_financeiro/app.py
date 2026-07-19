@@ -32,7 +32,12 @@ def main() -> None:
     with st.sidebar:
         cycle_key = st.text_input("Cycle key (YYYY-MM)", value=f"{today.year:04d}-{today.month:02d}")
 
-    summary = service.get_summary(cycle_key)
+    try:
+        summary = service.get_summary(cycle_key)
+    except ValueError:
+        st.error("Invalid cycle key. Use YYYY-MM with month between 01 and 12.")
+        st.stop()
+
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Fixed costs", _money(summary.total_fixed_cost))
     col2.metric("Variable expenses", _money(summary.total_variable_expense))

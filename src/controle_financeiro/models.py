@@ -28,7 +28,16 @@ def parse_month_key(cycle_key: str) -> tuple[int, int]:
     parts = cycle_key.split("-")
     if len(parts) != 2:
         raise ValueError("invalid cycle key")
-    return int(parts[0]), int(parts[1])
+
+    year_part, month_part = parts
+    if len(year_part) != 4 or len(month_part) != 2 or not year_part.isdigit() or not month_part.isdigit():
+        raise ValueError("invalid cycle key")
+
+    year, month = int(year_part), int(month_part)
+    if month < 1 or month > 12:
+        raise ValueError("invalid cycle key")
+
+    return year, month
 
 
 def next_month(year: int, month: int) -> tuple[int, int]:
