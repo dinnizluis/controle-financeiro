@@ -196,3 +196,10 @@ Define the minimum domain model for the first implementation phase of the budget
 
 - This issue should be used as the source of truth before writing the first domain code.
 - The next step after this issue is to translate the spec into models and persistence rules.
+
+## Amendment (2026-07-19): Weekly Check-in Removed
+
+- Decision: remove `WeeklyInvoiceCheckpoint` entirely from scope and implementation.
+- Rationale: the user's spending is almost entirely on credit card (to accumulate miles), and itemized variable expenses cover that same spend. Keeping both created a real double-counting risk in the projected margin formula (fixed + variable + open invoice total), not just a UX overlap.
+- Trade-off accepted: loses weekly reconciliation against the bank-reported invoice and loses the intra-month trend view. Deemed acceptable for MVP; a future detailed invoice import is expected to provide deeper reconciliation instead.
+- Impact: `WeeklyCheckinInput`, `WeeklyCheckinRecord`, `WeeklyInvoiceCheckpoint` ORM/table, related service/repository methods, and the UI tab are removed. `MonthSummary` no longer exposes `latest_open_invoice_total`. Open-cycle projected margin is now `-(total_fixed_cost + total_variable_expense)`.

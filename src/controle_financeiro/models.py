@@ -116,19 +116,6 @@ class VariableExpenseInput(BaseModel):
         return normalized
 
 
-class WeeklyCheckinInput(BaseModel):
-    checkin_date: date
-    open_invoice_total: Decimal
-
-    @field_validator("open_invoice_total")
-    @classmethod
-    def validate_amount(cls, value: Decimal) -> Decimal:
-        normalized = as_money(value)
-        if normalized < 0:
-            raise ValueError("open_invoice_total must be non-negative")
-        return normalized
-
-
 class MonthlyCloseInput(BaseModel):
     income_total: Decimal
     final_invoice_total: Decimal
@@ -177,16 +164,6 @@ class VariableExpenseRecord:
 
 
 @dataclass(frozen=True, slots=True)
-class WeeklyCheckinRecord:
-    id: str
-    month_cycle_id: str
-    checkin_date: date
-    open_invoice_total: Decimal
-    is_current: bool
-    created_at: datetime
-
-
-@dataclass(frozen=True, slots=True)
 class MonthlyCloseRecord:
     id: str
     month_cycle_id: str
@@ -201,6 +178,5 @@ class MonthSummary:
     cycle_key: str
     total_fixed_cost: Decimal
     total_variable_expense: Decimal
-    latest_open_invoice_total: Decimal
     projected_margin: Decimal
     status: MonthSummaryStatus

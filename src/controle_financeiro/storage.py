@@ -17,8 +17,6 @@ from controle_financeiro.models import (
     MonthlyCloseRecord,
     VariableExpenseInput,
     VariableExpenseRecord,
-    WeeklyCheckinInput,
-    WeeklyCheckinRecord,
     cycle_window,
     parse_month_key,
     utc_now,
@@ -69,17 +67,6 @@ class VariableExpenseORM(Base):
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class WeeklyCheckinORM(Base):
-    __tablename__ = "weekly_invoice_checkpoints"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    month_cycle_id: Mapped[str] = mapped_column(String(36), ForeignKey("month_cycles.id"), nullable=False, index=True)
-    checkin_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    open_invoice_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class MonthlyCloseORM(Base):
@@ -310,68 +297,6 @@ class SqliteBudgetRepository:
                     due_date=row.due_date,
                     created_at=row.created_at,
                     updated_at=row.updated_at,
-                )
-                for row in rows
-            ]
-
-    def save_weekly_checkin(
-        self,
-        cycle_key: str,
-        payload: WeeklyCheckinInput,
-        current_date: date,
-    ) -> WeeklyCheckinRecord:
-        with self._session() as session:
-            cycle = self._ensure_cycle(session, cycle_key)
-            self._assert_unlocked(cycle, current_date)
-
-            current_rows = session.scalars(
-                select(WeeklyCheckinORM).where(
-                    WeeklyCheckinORM.month_cycle_id == cycle.id,
-                    WeeklyCheckinORM.checkin_date == payload.checkin_date,
-                    WeeklyCheckinORM.is_current.is_(True),
-                )
-            ).all()
-            for row in current_rows:
-                row.is_current = False
-
-            row = WeeklyCheckinORM(
-                id=_id(),
-                month_cycle_id=cycle.id,
-                checkin_date=payload.checkin_date,
-                open_invoice_total=payload.open_invoice_total,
-                is_current=True,
-                created_at=utc_now(),
-            )
-            session.add(row)
-            session.commit()
-            session.refresh(row)
-            return WeeklyCheckinRecord(
-                id=row.id,
-                month_cycle_id=row.month_cycle_id,
-                checkin_date=row.checkin_date,
-                open_invoice_total=row.open_invoice_total,
-                is_current=row.is_current,
-                created_at=row.created_at,
-            )
-
-    def list_weekly_checkins(self, cycle_key: str) -> list[WeeklyCheckinRecord]:
-        with self._session() as session:
-            cycle = self._get_cycle(session, cycle_key)
-            if cycle is None:
-                return []
-            rows = session.scalars(
-                select(WeeklyCheckinORM)
-                .where(WeeklyCheckinORM.month_cycle_id == cycle.id)
-                .order_by(WeeklyCheckinORM.checkin_date.desc(), WeeklyCheckinORM.created_at.desc())
-            ).all()
-            return [
-                WeeklyCheckinRecord(
-                    id=row.id,
-                    month_cycle_id=row.month_cycle_id,
-                    checkin_date=row.checkin_date,
-                    open_invoice_total=row.open_invoice_total,
-                    is_current=row.is_current,
-                    created_at=row.created_at,
                 )
                 for row in rows
             ]

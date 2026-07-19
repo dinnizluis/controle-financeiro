@@ -3,10 +3,16 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import streamlit as st
 
-from controle_financeiro.models import FixedCostInput, MonthlyCloseInput, VariableExpenseInput, WeeklyCheckinInput
+from controle_financeiro.models import (
+    FixedCostInput,
+    MonthlyCloseInput,
+    VariableExpenseInput,
+    cycle_window,
+)
 from controle_financeiro.service import BudgetService
 from controle_financeiro.storage import DomainLockError, SqliteBudgetRepository
 
@@ -21,41 +27,61 @@ def _money(value: Decimal) -> str:
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _date_label(value: date | None) -> str:
+    if value is None:
+        return "-"
+    return value.isoformat()
+
+
+def _datetime_label(value: Any) -> str:
+    return value.strftime("%Y-%m-%d %H:%M")
+
+
 def main() -> None:
     st.set_page_config(page_title="controle-financeiro", layout="wide")
     st.title("Controle Financeiro")
-    st.caption("Spec001 execution: cycle-based data model and weekly check-ins.")
+    st.caption("Execucao da Spec001: modelo por ciclo com custos fixos e despesas variaveis.")
 
     service = get_service()
     today = date.today()
+    default_month = date(today.year, today.month, 1)
 
     with st.sidebar:
-        cycle_key = st.text_input("Cycle key (YYYY-MM)", value=f"{today.year:04d}-{today.month:02d}")
+        reference_month = st.date_input(
+            "Mes de referencia",
+            value=default_month,
+            help="Todos os registros e indicadores nesta tela se referem apenas ao ciclo mensal selecionado.",
+        )
+        cycle_key = f"{reference_month.year:04d}-{reference_month.month:02d}"
+        st.caption(f"Ciclo selecionado: {cycle_key}")
 
-    try:
-        summary = service.get_summary(cycle_key)
-    except ValueError:
-        st.error("Invalid cycle key. Use YYYY-MM with month between 01 and 12.")
-        st.stop()
+    summary = service.get_summary(cycle_key)
+    cycle_start, cycle_end = cycle_window(cycle_key)
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Fixed costs", _money(summary.total_fixed_cost))
-    col2.metric("Variable expenses", _money(summary.total_variable_expense))
-    col3.metric("Latest invoice", _money(summary.latest_open_invoice_total))
-    col4.metric("Projected margin", _money(summary.projected_margin))
+    st.info(
+        "Periodo selecionado: "
+        f"{cycle_key} (from {cycle_start.isoformat()} to {cycle_end.isoformat()}). "
+        "Crie e edite registros de um ciclo por vez; altere o mes de referencia para gerenciar outros meses."
+    )
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Custos fixos", _money(summary.total_fixed_cost))
+    col2.metric("Despesas variaveis", _money(summary.total_variable_expense))
+    col3.metric("Margem projetada", _money(summary.projected_margin))
     st.write(f"Status: **{summary.status.value}**")
 
-    tab_fixed, tab_variable, tab_checkin, tab_close = st.tabs(
-        ["Fixed costs", "Variable expenses", "Weekly check-ins", "Month close"]
+    tab_fixed, tab_variable, tab_close = st.tabs(
+        ["Custos fixos", "Despesas variaveis", "Fechamento mensal"]
     )
 
     with tab_fixed:
+        st.subheader("Cadastrar custo fixo")
         with st.form("fixed_cost_form", clear_on_submit=True):
-            name = st.text_input("Name")
-            amount = st.number_input("Amount", min_value=0.0, step=10.0)
-            due_date = st.date_input("Due date", value=None)
-            is_active = st.checkbox("Is active", value=True)
-            submitted = st.form_submit_button("Save fixed cost")
+            name = st.text_input("Nome")
+            amount = st.number_input("Valor", min_value=0.0, step=10.0)
+            due_date = st.date_input("Data de vencimento", value=None, key="fixed_due_date_create")
+            is_active = st.checkbox("Ativo", value=True)
+            submitted = st.form_submit_button("Salvar custo fixo")
             if submitted:
                 try:
                     service.add_fixed_cost(
@@ -68,16 +94,114 @@ def main() -> None:
                         ),
                         today,
                     )
-                    st.success("Fixed cost saved")
+                    st.rerun()
                 except (ValueError, DomainLockError) as exc:
                     st.error(str(exc))
 
+        fixed_costs = service.list_fixed_costs(cycle_key)
+
+        st.subheader("Editar custo fixo")
+        if fixed_costs:
+            fixed_options = {item.id: item for item in fixed_costs}
+            selected_fixed_id = st.selectbox(
+                "Selecione o custo fixo",
+                options=list(fixed_options.keys()),
+                format_func=lambda item_id: (
+                    f"{fixed_options[item_id].name} | {_money(fixed_options[item_id].amount)}"
+                    f" | {_date_label(fixed_options[item_id].due_date)}"
+                ),
+                key="fixed_edit_select",
+            )
+            selected_fixed = fixed_options[selected_fixed_id]
+            with st.form("fixed_cost_edit_form"):
+                edit_name = st.text_input("Nome", value=selected_fixed.name, key="fixed_name_edit")
+                edit_amount = st.number_input(
+                    "Valor",
+                    min_value=0.0,
+                    step=10.0,
+                    value=float(selected_fixed.amount),
+                    key="fixed_amount_edit",
+                )
+                edit_due_date = st.date_input(
+                    "Data de vencimento",
+                    value=selected_fixed.due_date,
+                    key="fixed_due_date_edit",
+                )
+                edit_is_active = st.checkbox("Ativo", value=selected_fixed.is_active, key="fixed_active_edit")
+                edit_submitted = st.form_submit_button("Atualizar custo fixo")
+                if edit_submitted:
+                    try:
+                        service.update_fixed_cost(
+                            cycle_key,
+                            selected_fixed.id,
+                            FixedCostInput(
+                                name=edit_name,
+                                amount=Decimal(str(edit_amount)),
+                                due_date=edit_due_date,
+                                is_active=edit_is_active,
+                            ),
+                            today,
+                        )
+                        st.rerun()
+                    except (ValueError, DomainLockError) as exc:
+                        st.error(str(exc))
+        else:
+            st.info("Ainda nao ha custos fixos para este ciclo.")
+
+        fixed_costs = service.list_fixed_costs(cycle_key)
+
+        st.subheader("Custos fixos do ciclo")
+        fixed_status_filter = st.selectbox(
+            "Filtro de status",
+            options=["Todos", "Ativos", "Inativos"],
+            key="fixed_status_filter",
+        )
+        fixed_sort = st.selectbox(
+            "Ordenacao",
+            options=["Mais recentes", "Mais antigos", "Vencimento crescente", "Vencimento decrescente"],
+            key="fixed_sort",
+        )
+
+        filtered_fixed = fixed_costs
+        if fixed_status_filter == "Ativos":
+            filtered_fixed = [item for item in filtered_fixed if item.is_active]
+        elif fixed_status_filter == "Inativos":
+            filtered_fixed = [item for item in filtered_fixed if not item.is_active]
+
+        if fixed_sort == "Mais antigos":
+            filtered_fixed = sorted(filtered_fixed, key=lambda item: item.created_at)
+        elif fixed_sort == "Vencimento crescente":
+            filtered_fixed = sorted(
+                filtered_fixed,
+                key=lambda item: (item.due_date is None, item.due_date or date.max),
+            )
+        elif fixed_sort == "Vencimento decrescente":
+            filtered_fixed = sorted(
+                filtered_fixed,
+                key=lambda item: (item.due_date is None, item.due_date or date.min),
+                reverse=True,
+            )
+
+        fixed_table = [
+            {
+                "id": item.id,
+                "name": item.name,
+                "amount": _money(item.amount),
+                "due_date": _date_label(item.due_date),
+                "is_active": item.is_active,
+                "updated_at": _datetime_label(item.updated_at),
+            }
+            for item in filtered_fixed
+        ]
+        st.dataframe(fixed_table, hide_index=True)
+
     with tab_variable:
+        st.subheader("Cadastrar despesa variavel")
         with st.form("variable_expense_form", clear_on_submit=True):
-            description = st.text_input("Description")
-            amount = st.number_input("Amount", min_value=0.0, step=10.0, key="variable_amount")
-            due_date = st.date_input("Due date", value=None, key="variable_due_date")
-            submitted = st.form_submit_button("Save variable expense")
+            description = st.text_input("Descricao")
+            amount = st.number_input("Valor", min_value=0.0, step=10.0, key="variable_amount")
+            due_date = st.date_input("Data de vencimento", value=None, key="variable_due_date")
+            submitted = st.form_submit_button("Salvar despesa variavel")
             if submitted:
                 try:
                     service.add_variable_expense(
@@ -89,35 +213,129 @@ def main() -> None:
                         ),
                         today,
                     )
-                    st.success("Variable expense saved")
+                    st.rerun()
                 except (ValueError, DomainLockError) as exc:
                     st.error(str(exc))
 
-    with tab_checkin:
-        with st.form("weekly_checkin_form", clear_on_submit=True):
-            checkin_date = st.date_input("Check-in date", value=today)
-            open_invoice_total = st.number_input("Open invoice total", min_value=0.0, step=10.0)
-            submitted = st.form_submit_button("Save check-in")
-            if submitted:
-                try:
-                    service.add_weekly_checkin(
-                        cycle_key,
-                        WeeklyCheckinInput(
-                            checkin_date=checkin_date,
-                            open_invoice_total=Decimal(str(open_invoice_total)),
-                        ),
-                        today,
-                    )
-                    st.success("Weekly check-in saved")
-                except (ValueError, DomainLockError) as exc:
-                    st.error(str(exc))
+        variable_expenses = service.list_variable_expenses(cycle_key)
+
+        st.subheader("Editar despesa variavel")
+        if variable_expenses:
+            variable_options = {item.id: item for item in variable_expenses}
+            selected_variable_id = st.selectbox(
+                "Selecione a despesa variavel",
+                options=list(variable_options.keys()),
+                format_func=lambda item_id: (
+                    f"{variable_options[item_id].description} | {_money(variable_options[item_id].amount)}"
+                    f" | {_date_label(variable_options[item_id].due_date)}"
+                ),
+                key="variable_edit_select",
+            )
+            selected_variable = variable_options[selected_variable_id]
+            with st.form("variable_expense_edit_form"):
+                edit_description = st.text_input(
+                    "Descricao",
+                    value=selected_variable.description,
+                    key="variable_description_edit",
+                )
+                edit_amount = st.number_input(
+                    "Valor",
+                    min_value=0.0,
+                    step=10.0,
+                    value=float(selected_variable.amount),
+                    key="variable_amount_edit",
+                )
+                edit_due_date = st.date_input(
+                    "Data de vencimento",
+                    value=selected_variable.due_date,
+                    key="variable_due_date_edit",
+                )
+                edit_submitted = st.form_submit_button("Atualizar despesa variavel")
+                if edit_submitted:
+                    try:
+                        service.update_variable_expense(
+                            cycle_key,
+                            selected_variable.id,
+                            VariableExpenseInput(
+                                description=edit_description,
+                                amount=Decimal(str(edit_amount)),
+                                due_date=edit_due_date,
+                            ),
+                            today,
+                        )
+                        st.rerun()
+                    except (ValueError, DomainLockError) as exc:
+                        st.error(str(exc))
+        else:
+            st.info("Ainda nao ha despesas variaveis para este ciclo.")
+
+        variable_expenses = service.list_variable_expenses(cycle_key)
+
+        st.subheader("Despesas variaveis do ciclo")
+        variable_query = st.text_input("Buscar por descricao", key="variable_query")
+        variable_sort = st.selectbox(
+            "Ordenacao",
+            options=["Mais recentes", "Mais antigos", "Vencimento crescente", "Vencimento decrescente"],
+            key="variable_sort",
+        )
+
+        filtered_variable = variable_expenses
+        if variable_query.strip():
+            query = variable_query.strip().lower()
+            filtered_variable = [item for item in filtered_variable if query in item.description.lower()]
+
+        if variable_sort == "Mais antigos":
+            filtered_variable = sorted(filtered_variable, key=lambda item: item.created_at)
+        elif variable_sort == "Vencimento crescente":
+            filtered_variable = sorted(
+                filtered_variable,
+                key=lambda item: (item.due_date is None, item.due_date or date.max),
+            )
+        elif variable_sort == "Vencimento decrescente":
+            filtered_variable = sorted(
+                filtered_variable,
+                key=lambda item: (item.due_date is None, item.due_date or date.min),
+                reverse=True,
+            )
+
+        variable_table = [
+            {
+                "id": item.id,
+                "description": item.description,
+                "amount": _money(item.amount),
+                "due_date": _date_label(item.due_date),
+                "updated_at": _datetime_label(item.updated_at),
+            }
+            for item in filtered_variable
+        ]
+        st.dataframe(variable_table, hide_index=True)
 
     with tab_close:
-        with st.form("month_close_form", clear_on_submit=True):
-            income_total = st.number_input("Income total", min_value=0.0, step=100.0)
-            final_invoice_total = st.number_input("Final invoice total", min_value=0.0, step=10.0)
-            reserve_cash_outflow = st.number_input("Reserve cash outflow", min_value=0.0, step=10.0)
-            submitted = st.form_submit_button("Save monthly close")
+        existing_monthly_close = service.get_monthly_close(cycle_key)
+
+        st.subheader("Cadastrar ou editar fechamento mensal")
+        with st.form("month_close_form"):
+            income_total = st.number_input(
+                "Renda total",
+                min_value=0.0,
+                step=100.0,
+                value=float(existing_monthly_close.income_total) if existing_monthly_close else 0.0,
+            )
+            final_invoice_total = st.number_input(
+                "Total final da fatura",
+                min_value=0.0,
+                step=10.0,
+                value=float(existing_monthly_close.final_invoice_total) if existing_monthly_close else 0.0,
+            )
+            reserve_cash_outflow = st.number_input(
+                "Saida de caixa para reserva",
+                min_value=0.0,
+                step=10.0,
+                value=float(existing_monthly_close.reserve_cash_outflow) if existing_monthly_close else 0.0,
+            )
+            submitted = st.form_submit_button(
+                "Atualizar fechamento mensal" if existing_monthly_close else "Salvar fechamento mensal"
+            )
             if submitted:
                 try:
                     service.save_monthly_close(
@@ -129,11 +347,28 @@ def main() -> None:
                         ),
                         today,
                     )
-                    st.success("Monthly close saved")
+                    st.rerun()
                 except (ValueError, DomainLockError) as exc:
                     st.error(str(exc))
 
-    st.caption(f"Workspace: {Path(__file__).resolve().parent.parent.parent.name}")
+        monthly_close = service.get_monthly_close(cycle_key)
+
+        st.subheader("Fechamento mensal do ciclo")
+        if monthly_close is None:
+            st.info("Ainda nao ha fechamento mensal para este ciclo.")
+        else:
+            close_table = [
+                {
+                    "id": monthly_close.id,
+                    "income_total": _money(monthly_close.income_total),
+                    "final_invoice_total": _money(monthly_close.final_invoice_total),
+                    "reserve_cash_outflow": _money(monthly_close.reserve_cash_outflow),
+                    "closed_at": _datetime_label(monthly_close.closed_at),
+                }
+            ]
+            st.dataframe(close_table, hide_index=True)
+
+    st.caption(f"Projeto: {Path(__file__).resolve().parent.parent.parent.name}")
 
 
 if __name__ == "__main__":
