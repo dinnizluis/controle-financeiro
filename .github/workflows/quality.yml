@@ -2,9 +2,15 @@ name: quality
 
 on:
   pull_request:
+    branches:
+      - development
+      - uat
+      - main
   push:
     branches:
       - development
+      - uat
+      - main
 
 permissions:
   contents: read
