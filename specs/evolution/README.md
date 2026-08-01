@@ -14,4 +14,5 @@ Create dated files using the same convention documented in
 
 ## Current Reference
 
+- [docs/evolution/2026-08-01-authentication-and-publishing-plan.md](../../docs/evolution/2026-08-01-authentication-and-publishing-plan.md)
 - [docs/evolution/2026-07-31-mvp-foundation-plan.md](../../docs/evolution/2026-07-31-mvp-foundation-plan.md)
