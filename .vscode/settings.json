@@ -4,5 +4,12 @@
             "approve": true,
             "matchCommandLine": true
         }
+    },
+    "chat.promptFilesRecommendations": {
+        "speckit.constitution": true,
+        "speckit.specify": true,
+        "speckit.plan": true,
+        "speckit.tasks": true,
+        "speckit.implement": true
     }
 }

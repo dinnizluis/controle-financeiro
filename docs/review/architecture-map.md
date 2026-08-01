@@ -62,6 +62,6 @@ Provide a fast, high-confidence understanding of the current implementation flow
 
 ## Review Anchors
 
-- Source-of-truth spec: [docs/issues/001-data-model-spec.md](../issues/001-data-model-spec.md)
+- Source-of-truth spec: [docs/history/feature-specs/001-data-model-spec.md](../history/feature-specs/001-data-model-spec.md)
 - Contract tests: [tests/test_spec001_contract.py](../../tests/test_spec001_contract.py)
-- Workflow constraints: [docs/ai-workflow.md](../ai-workflow.md)
+- Workflow constraints: [docs/process/ai-workflow.md](../process/ai-workflow.md)
