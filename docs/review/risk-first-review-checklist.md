@@ -37,6 +37,9 @@ Review AI-generated code quickly without sacrificing behavioral confidence.
 6. Testing Adequacy
 - Confirm each critical rule has at least one test.
 - Confirm changed rules have deterministic tests before relying on generated cases.
+- Confirm every Gherkin scenario has a matching regression-map row and implemented test evidence.
+- Confirm each changed Streamlit flow has AppTest coverage for its visible success, empty, or error
+  state. Keep financial calculations and lock rules covered at domain or persistence level.
 - Use Hypothesis only for domain or persistence invariants such as money normalization, cycle
 	boundaries, and locks.
 - Log missing scenarios as explicit test tasks.

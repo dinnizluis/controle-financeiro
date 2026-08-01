@@ -78,6 +78,38 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
+## Acceptance Criteria and Regression Map *(mandatory)*
+
+### Gherkin Scenarios
+
+```gherkin
+Feature: [user-visible capability]
+
+  Scenario: [successful user outcome]
+    Given [starting user-visible state]
+    When [user action]
+    Then [observable result]
+
+  Scenario: [validation, empty, or error outcome]
+    Given [starting user-visible state]
+    When [user action]
+    Then [observable result]
+```
+
+Write one independent scenario for each primary flow and include error, empty, validation, and
+locked-state scenarios where relevant. Do not use implementation details in Gherkin steps.
+
+### UI Flow and Regression Test Map
+
+| Gherkin scenario | Starting screen or state | User action | Observable result | Test layer | Planned test |
+|------------------|--------------------------|-------------|-------------------|------------|--------------|
+| [scenario] | [screen/state] | [action] | [result] | domain/persistence/ui | [test path] |
+
+Use `domain` for money, date, summary, and lifecycle rules; `persistence` for stored data and
+history; and `ui` for Streamlit user interactions and displayed outcomes. UI rows target
+`streamlit.testing.v1.AppTest`. Each changed business rule also needs deterministic pytest
+coverage even when its UI flow is tested.
+
 ## Requirements *(mandatory)*
 
 <!--

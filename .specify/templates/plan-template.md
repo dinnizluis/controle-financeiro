@@ -42,6 +42,23 @@
 
 [Gates determined based on constitution file]
 
+## Regression Test Strategy *(mandatory)*
+
+Map every Gherkin scenario in `spec.md` to its smallest effective automated test. The plan must
+name the intended test file and avoid tests that merely repeat a lower-layer assertion.
+
+| Gherkin scenario | Risk or rule | Test layer | Planned test | Rationale |
+|------------------|--------------|------------|--------------|-----------|
+| [scenario] | [risk/rule] | domain/persistence/ui/property | [test path] | [why this layer] |
+
+- Use deterministic pytest tests for financial calculations, dates, validation, lifecycle, and
+  lock rules.
+- Use temporary SQLite databases for persistence and history behavior.
+- Use `streamlit.testing.v1.AppTest` for Streamlit workflows and visible empty, error, and success
+  states.
+- Use Hypothesis only for high-value invariants and boundary combinations that are impractical to
+  enumerate.
+
 ## Project Structure
 
 ### Documentation (this feature)

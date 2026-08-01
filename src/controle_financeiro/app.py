@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -19,7 +20,10 @@ from controle_financeiro.storage import DomainLockError, SqliteBudgetRepository
 
 @st.cache_resource
 def get_service() -> BudgetService:
-    repository = SqliteBudgetRepository(Path("data") / "controle_financeiro.db")
+    database_path = Path(
+        os.environ.get("CONTROLE_FINANCEIRO_DB_PATH", "data/controle_financeiro.db")
+    )
+    repository = SqliteBudgetRepository(database_path)
     return BudgetService(repository)
 
 
