@@ -32,3 +32,10 @@
 ## Notes
 
 - Validation pass 1: all checklist items satisfied; specification is ready for `/speckit.plan`.
+- Validation pass 2 (MVP-0 delivery):
+	- `pytest --cov=controle_financeiro --cov-report=term-missing --cov-fail-under=90 -q`: pass
+	- `ruff format --check .`: pass
+	- `ruff check .`: pass
+	- `pyright`: pass
+	- `pip-audit`: pass (`controle-financeiro` local package skipped because it is not published on PyPI)
+	- `streamlit run streamlit_app.py --server.headless true --server.port 8503` with temporary `APP_ACCESS_PASSWORD`: app booted and exposed the locked entry state

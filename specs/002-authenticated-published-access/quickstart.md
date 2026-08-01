@@ -25,6 +25,20 @@ APP_ACCESS_PASSWORD = "change-me-now"
 
 For hosted deployment, configure the same key in Streamlit Cloud secrets.
 
+## Manual Smoke Check
+
+Start the app locally:
+
+```bash
+.venv/bin/streamlit run streamlit_app.py
+```
+
+Validate the following manually:
+
+1. First render shows `Acesso protegido` and does not show summary metrics, tabs, or tables.
+2. Submitting a wrong password keeps the app locked and shows `Senha invalida.`.
+3. Submitting the configured password unlocks the existing dashboard and renders the normal monthly workflow.
+
 ## Validation Scenarios
 
 ### 1) Locked state blocks financial initialization
@@ -69,14 +83,18 @@ Expected outcome:
 Run:
 
 ```bash
-.venv/bin/python -m pytest -q
+.venv/bin/python -m pytest --cov=controle_financeiro --cov-report=term-missing --cov-fail-under=90 -q
 .venv/bin/python -m ruff format --check .
 .venv/bin/python -m ruff check .
+.venv/bin/pyright
+.venv/bin/pip-audit
 ```
 
 Expected outcome:
 - All checks pass.
+- Total line coverage for `controle_financeiro` stays at or above **90%**.
 - Financial data remains hidden until password unlock.
+- Local and hosted manual smoke checks keep the app fail-closed until the correct password is entered.
 
 ## References
 

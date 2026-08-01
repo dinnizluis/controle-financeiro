@@ -14,10 +14,10 @@
 
 **Purpose**: Entregar bloqueio simples e rapido para impedir acesso publico aos dados.
 
-- [ ] T001 Add password gate test doubles and session-state helpers in `tests/conftest.py`
-- [ ] T002 Add locked/unlocked minimal UI regressions in `tests/test_ui_auth_access.py`
-- [ ] T003 Implement single password gate from `st.secrets` and move `get_service()` behind unlocked-only branch in `src/controle_financeiro/app.py`
-- [ ] T004 Update MVP-0 validation notes (password setup + manual check) in `specs/002-authenticated-published-access/quickstart.md`
+- [x] T001 Add password gate test doubles and session-state helpers in `tests/conftest.py`
+- [x] T002 Add locked/unlocked minimal UI regressions in `tests/test_ui_auth_access.py`
+- [x] T003 Implement single password gate from `st.secrets` and move `get_service()` behind unlocked-only branch in `src/controle_financeiro/app.py`
+- [x] T004 Update MVP-0 validation notes (password setup + manual check) in `specs/002-authenticated-published-access/quickstart.md`
 
 ---
 
@@ -80,3 +80,11 @@ Bandas:
 - Complexidade media por task: **3.5 (XS)**
 - Caminho critico (T001 -> T002 -> T003 -> T004): **~1.5 dias uteis**
 - Worst-case consolidado da feature (com folga de integracao): **~1 dia util**
+
+## Phase 2: Convergence
+
+**Purpose**: Alinhar artefatos e rastreabilidade final com o MVP-0 entregue.
+
+- [x] T005 Reconcile `spec.md` and `plan.md` requirement/test maps with the delivered password-gate MVP-0, moving deferred OIDC/allowlist/logout obligations into explicit future-evolution traceability per `FR-003`-`FR-014` and plan regression map (contradicts)
+- [x] T006 Record final MVP-0 validation evidence (`streamlit run`, `pytest --cov`, `ruff format --check`, `ruff check`, `pyright`, `pip-audit`) in feature artifacts per Constitution Quality Gates (missing)
+- [x] T007 Update GitHub sub-issues `#11`-`#14` and parent issue `#10` with implementation notes, validation evidence, and final status for the delivered MVP-0 password gate per Constitution II and execution traceability needs (partial)

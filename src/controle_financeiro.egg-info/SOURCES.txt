@@ -10,4 +10,7 @@ src/controle_financeiro.egg-info/SOURCES.txt
 src/controle_financeiro.egg-info/dependency_links.txt
 src/controle_financeiro.egg-info/requires.txt
 src/controle_financeiro.egg-info/top_level.txt
+tests/test_app_helpers.py
 tests/test_spec001_contract.py
+tests/test_ui_auth_access.py
+tests/test_ui_regression.py

@@ -4,6 +4,141 @@
 
 **Input**: Feature specification from `/specs/002-authenticated-published-access/spec.md`
 
+## Summary
+
+Protect the published Streamlit app with the smallest verifiable privacy barrier: a single shared
+password from `st.secrets` that blocks all financial service initialization and financial UI
+rendering until the current session is unlocked. This slice deliberately avoids OIDC, allowlist,
+logout, and token-lifecycle behavior, which remain future evolution.
+
+## Technical Context
+
+**Language/Version**: Python 3.11+ (project supports >=3.11,<3.13)
+
+**Primary Dependencies**: Streamlit, SQLAlchemy, Pydantic
+
+**Storage**: SQLite single shared dataset (`data/controle_financeiro.db` by default)
+
+**Testing**: pytest, pytest-cov, streamlit.testing.v1.AppTest, pyright, pip-audit
+
+**Coverage Target**: Minimum line coverage of **90%** for `controle_financeiro`
+
+**Target Platform**: Streamlit app in local and hosted runtime with configured secrets
+
+**Project Type**: Single Python Streamlit application
+
+**Performance Goals**: No meaningful regression to current first-render flow for unlocked users;
+locked and invalid-config flows must short-circuit before budget service initialization.
+
+**Constraints**: Fail-closed access; secrets-only configuration; no changes to financial
+calculations/cycle rules/history semantics; no data migrations.
+
+**Scale/Scope**: Single owner or tiny trusted household sharing one dataset; no per-user data
+isolation in this slice.
+
+## Constitution Check
+
+Pre-implementation review:
+
+- Principle I - Preserve Financial Integrity: PASS. Scope only gates access and does not change
+  money, cycle, or history rules.
+- Principle II - Specify Before Implementing: PASS. Spec, plan, tasks, and quickstart all target
+  the same MVP-0 password gate.
+- Principle III - Test the Risk First: PASS. Locked, unlocked, invalid-config, invalid-password,
+  helper, and empty-state scenarios are covered by deterministic pytest/AppTest cases.
+- Principle IV - Keep Domain Boundaries Explicit: PASS. UI orchestrates access state and existing
+  service boundaries remain intact.
+- Principle V - Prefer the Smallest Verifiable Slice: PASS. Delivery stays on the password-only
+  path without introducing new modules or auth providers.
+
+## Regression Test Strategy *(mandatory)*
+
+Map every MVP-0 scenario in `spec.md` to its smallest effective automated test.
+
+| Scenario | Risk or rule | Test layer | Planned test | Rationale |
+|----------|--------------|------------|--------------|-----------|
+| Visitor is stopped before financial services initialize | Prevent exposure before unlock and prevent service startup | ui | `tests/test_ui_auth_access.py::test_password_gate_blocks_financial_ui_before_unlock` | Verifies visible locked state and guard ordering in real Streamlit lifecycle |
+| Correct password unlocks the dashboard | Happy path after password validation | ui | `tests/test_ui_auth_access.py::test_password_gate_unlocks_dashboard_on_valid_password` | Ensures the dashboard remains reachable after unlock |
+| Missing password configuration fails closed | Broken config cannot degrade to open access | ui | `tests/test_ui_auth_access.py::test_password_gate_missing_secret_fails_closed` | Confirms non-sensitive fail-closed behavior |
+| Wrong password keeps the app locked | Invalid secret entry must not initialize services | ui | `tests/test_ui_auth_access.py::test_password_gate_wrong_password_keeps_app_locked` | Verifies negative validation path in the real UI flow |
+| Unlocked user still reaches existing empty monthly state | Existing empty-cycle UX must survive the gate | ui | `tests/test_ui_regression.py::test_empty_cycle_exposes_entry_forms_and_guidance` | Guards the baseline dashboard shell after unlock |
+| Password helper and session state logic remain deterministic | Secrets/session helper regressions should fail fast | unit | `tests/test_app_helpers.py` | Covers configuration parsing, session state, formatting, and env-based service wiring |
+
+Validation gate for this slice:
+
+- `.venv/bin/python -m pytest --cov=controle_financeiro --cov-report=term-missing --cov-fail-under=90 -q`
+- `.venv/bin/python -m ruff format --check .`
+- `.venv/bin/python -m ruff check .`
+- `.venv/bin/pyright`
+- `.venv/bin/pip-audit`
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/002-authenticated-published-access/
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
+├── contracts/
+│   ├── access-state-ui-contract.md
+│   └── auth-config-contract.md
+└── tasks.md
+```
+
+### Source Code (repository root)
+
+```text
+streamlit_app.py
+src/
+└── controle_financeiro/
+  ├── app.py
+  ├── models.py
+  ├── service.py
+  └── storage.py
+
+tests/
+├── conftest.py
+├── test_app_helpers.py
+├── test_spec001_contract.py
+├── test_ui_regression.py
+└── test_ui_auth_access.py
+```
+
+**Structure Decision**: Keep the existing single-project Streamlit architecture, reuse the current
+service/repository boundaries, and add only focused tests plus password-gate logic in the UI entry
+point.
+
+## MVP Complexity and Estimate
+
+Heuristic adopted for this feature slice (same model as `tasks.md`):
+
+- `B` (blast radius): 1-3
+- `U` (unknowns): 1-3
+- `T` (test load): 1-3
+- `Score = B + U + T` (3..9)
+
+MVP-0 task-set used for execution planning: T001-T004.
+
+Planning metrics:
+
+- Total score: 14
+- Average score per task: 3.5
+- Complexity class: XS
+- Critical path: T001 -> T002 -> T003 -> T004 (~1.5 working days)
+- Feature worst-case estimate: **~1 working day**
+
+Operational reading:
+
+- Half day to day 1: password gate + focused UI regressions
+- Remaining buffer: helper coverage, validation evidence, and deploy secret verification# Implementation Plan: Authenticated Published Access
+
+**Branch**: `002-authenticated-published-access` | **Date**: 2026-08-01 | **Spec**: [spec.md](./spec.md)
+
+**Input**: Feature specification from `/specs/002-authenticated-published-access/spec.md`
+
 **Note**: This template is filled in by the `/speckit.plan` command; its definition describes the execution workflow.
 
 ## Summary

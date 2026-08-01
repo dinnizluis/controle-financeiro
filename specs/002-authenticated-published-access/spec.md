@@ -4,6 +4,227 @@
 
 **Created**: 2026-08-01
 
+**Status**: MVP-0 Delivered
+
+**Input**: User description: "Issue: https://github.com/dinnizluis/controle-financeiro/issues/10"
+
+## Execution Scope Override (MVP-0)
+
+Current execution scope is intentionally reduced to the smallest privacy barrier:
+
+- Single shared password gate via `st.secrets` (`APP_ACCESS_PASSWORD`)
+- Block all financial initialization/rendering before valid password
+- Fail-closed when password config is missing/invalid
+- No logout flow in this slice
+
+Future evolution remains explicitly deferred:
+
+- OIDC with `st.login()` / `st.user` / `st.logout()`
+- Allowlist by identity (subject preferred, email fallback)
+- Explicit logout lifecycle and forced token-expiration behavior
+- Multi-user authorization or per-user data isolation
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Block public access before data load (Priority: P1)
+
+As the owner of the published app, I need visitors without the shared password to be stopped before
+any financial component is initialized, so that sensitive monthly budget data is never exposed
+publicly.
+
+**Why this priority**: This is the minimum privacy barrier for safe publication. Without it, all
+other controls are irrelevant because financial data can leak at first page load.
+
+**Independent Test**: Can be fully tested by opening the app without an unlocked session and
+verifying that only the password gate is visible while financial views and data loading do not
+happen.
+
+**Acceptance Scenarios**:
+
+1. **Given** a visitor without a valid unlocked session, **When** they open the app URL, **Then**
+   the app shows only the password entry state and no financial data or controls.
+2. **Given** a visitor without a valid unlocked session, **When** they refresh or reopen the app,
+   **Then** the app remains locked and no financial data is shown.
+
+---
+
+### User Story 2 - Unlock dashboard with the configured password (Priority: P1)
+
+As the owner of the published app, I need the configured shared password to unlock the existing
+dashboard, so that publication remains private without changing the financial workflow.
+
+**Why this priority**: The feature is only useful if the owner can still reach the current monthly
+workflow after passing the gate.
+
+**Independent Test**: Can be fully tested by entering the configured password and verifying that
+the current dashboard shell renders normally.
+
+**Acceptance Scenarios**:
+
+1. **Given** a visitor who enters the configured shared password, **When** the app validates the
+   password, **Then** the app grants access and shows the current financial dashboard.
+2. **Given** an unlocked user whose selected cycle has no records yet, **When** the dashboard
+   loads, **Then** the existing empty-state guidance is shown without authorization errors.
+
+---
+
+### User Story 3 - Fail closed on bad or missing configuration (Priority: P1)
+
+As the owner of the published app, I need missing configuration or invalid password attempts to
+keep the app locked, so that misconfiguration or misuse never exposes financial data.
+
+**Why this priority**: The privacy barrier must default to closed behavior, not best-effort access.
+
+**Independent Test**: Can be fully tested by omitting `APP_ACCESS_PASSWORD` and by entering a wrong
+password, verifying that the app remains locked and non-sensitive.
+
+**Acceptance Scenarios**:
+
+1. **Given** `APP_ACCESS_PASSWORD` is missing, empty, or invalid, **When** the app loads, **Then**
+   the app shows a non-sensitive configuration error and no financial data.
+2. **Given** a visitor enters a wrong password, **When** the app validates the entry, **Then** the
+   app remains locked, shows non-sensitive feedback, and does not initialize financial services.
+
+---
+
+### Edge Cases
+
+- What happens when `APP_ACCESS_PASSWORD` is missing, empty, or whitespace-only? The app fails
+  closed and blocks all financial rendering.
+- What happens when a visitor enters the wrong password repeatedly? The app remains locked and no
+  financial service initialization occurs.
+- What happens when the user refreshes before unlocking? The app stays on the locked entry state.
+- What happens when the unlocked cycle has no records yet? The dashboard still reaches the existing
+  empty-state guidance without access errors.
+
+## Acceptance Criteria and Regression Map *(mandatory)*
+
+### Gherkin Scenarios
+
+```gherkin
+Feature: Protected published access to the Streamlit finance app
+
+  Scenario: Visitor is stopped before financial services initialize
+    Given the published app is opened without a valid unlocked session
+    When the entry screen loads
+    Then the app shows a password prompt
+    And financial services are not initialized
+    And no financial summary, cycle selector, table, or lock message is shown
+
+  Scenario: Correct password unlocks the dashboard
+    Given the visitor enters the configured shared password
+    When the app validates the password
+    Then the app initializes financial services
+    And the current financial dashboard is shown
+
+  Scenario: Missing password configuration fails closed
+    Given APP_ACCESS_PASSWORD is missing or invalid
+    When the entry screen loads
+    Then the app shows a non-sensitive configuration error
+    And financial services are not initialized
+    And no financial summary, cycle selector, table, or lock message is shown
+
+  Scenario: Wrong password keeps the app locked
+    Given the visitor enters an invalid password
+    When the app validates the password
+    Then the app remains locked
+    And financial services are not initialized
+    And no financial summary, cycle selector, table, or lock message is shown
+
+  Scenario: Unlocked user still reaches existing empty monthly state
+    Given the user has already unlocked the app with the configured password
+    And the selected cycle has no fixed costs and no variable expenses yet
+    When the dashboard loads
+    Then the app shows the authenticated shell and existing empty-state guidance
+    And no access error is shown
+```
+
+### UI Flow and Regression Test Map
+
+| Gherkin scenario | Starting screen or state | User action | Observable result | Test layer | Planned test |
+|------------------|--------------------------|-------------|-------------------|------------|--------------|
+| Visitor is stopped before financial services initialize | Published app entry, locked session | Open app | Password prompt only, no service init, no financial UI | ui | `tests/test_ui_auth_access.py::test_password_gate_blocks_financial_ui_before_unlock` |
+| Correct password unlocks the dashboard | Published app entry, locked session | Enter valid password | Dashboard loads with summary, cycle controls, and forms | ui | `tests/test_ui_auth_access.py::test_password_gate_unlocks_dashboard_on_valid_password` |
+| Missing password configuration fails closed | Published app entry, missing `APP_ACCESS_PASSWORD` | Open app | Non-sensitive config error, no service init | ui | `tests/test_ui_auth_access.py::test_password_gate_missing_secret_fails_closed` |
+| Wrong password keeps the app locked | Published app entry, locked session | Enter invalid password | Locked state persists with non-sensitive error | ui | `tests/test_ui_auth_access.py::test_password_gate_wrong_password_keeps_app_locked` |
+| Unlocked user still reaches existing empty monthly state | Unlocked session with empty cycle | Open app | Existing empty-state guidance appears after unlock | ui | `tests/test_ui_regression.py::test_empty_cycle_exposes_entry_forms_and_guidance` |
+
+Use `ui` for Streamlit user interactions and displayed outcomes. UI rows target
+`streamlit.testing.v1.AppTest`. Deterministic helper coverage for password configuration,
+session-state, and formatting helpers lives in `tests/test_app_helpers.py`.
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+- **FR-001**: System MUST require a successful password unlock before any financial service
+  initialization.
+- **FR-002**: System MUST deny access to any session without a successful password unlock and show
+  only a non-sensitive locked entry state.
+- **FR-003**: System MUST grant access only when the user-provided password exactly matches
+  `APP_ACCESS_PASSWORD` from runtime secrets.
+- **FR-004**: System MUST fail closed when `APP_ACCESS_PASSWORD` is missing, empty, unreadable, or
+  invalid.
+- **FR-005**: System MUST keep the app locked when the visitor enters the wrong password.
+- **FR-006**: System MUST ensure no financial summary, cycle selection, record table, lock status,
+  or history information is rendered before unlock succeeds.
+- **FR-007**: System MUST preserve all existing money calculations, cycle boundaries, lock rules,
+  and history behavior for unlocked sessions.
+- **FR-008**: System MUST NOT create, mutate, or migrate financial records solely by enabling the
+  password gate.
+- **FR-009**: System MUST obtain the shared password from secure runtime secrets, not
+  version-controlled files or SQLite data.
+- **FR-010**: System MUST keep OIDC login, allowlist authorization, explicit logout, and forced
+  token-expiration handling outside this feature scope.
+
+### Key Entities *(include if feature involves data)*
+
+- **Password Gate Configuration**: runtime secret holding the shared password used to unlock the
+  app.
+- **Unlocked Session State**: transient runtime state indicating whether the current session has
+  already passed password validation.
+- **Access State**: one of locked, configuration error, or unlocked, controlling whether financial
+  services may initialize.
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: 100% of locked app entries present only the password-gate state and expose zero
+  financial indicators.
+- **SC-002**: 100% of valid password submissions can reach the current dashboard without new
+  authorization errors.
+- **SC-003**: 100% of missing or invalid password configuration states fail closed before any
+  financial service initialization.
+- **SC-004**: Zero financial records are created, modified, or deleted solely by enabling the
+  password-gate flow.
+
+## Assumptions
+
+- The first published release remains single-owner or a deliberately tiny trusted household sharing
+  one SQLite dataset; per-user data isolation is out of scope.
+- The shared password is maintained by the app owner through secure deployment secrets.
+- Existing dashboard and monthly workflow behavior stays unchanged after unlock.
+
+## Delivery Sizing (MVP-0)
+
+Sizing for issue #10 uses a lightweight complexity heuristic documented in `tasks.md`:
+
+- Score per task = `B (blast radius) + U (unknowns) + T (test load)`
+- Bands: XS (3-4), S (5-6), M (7-8), L (9)
+
+MVP-0 sizing snapshot:
+
+- Active MVP tasks: T001-T004
+- Total complexity score: 14
+- Average task score: 3.5 (XS)
+- Critical path estimate: ~1.5 working days
+- Consolidated worst-case estimate (integration + validation buffer): **~1 working day**# Feature Specification: Authenticated Published Access
+
+**Feature Branch**: `10-feat-streamlit-auth-oidc-allowlist`
+
+**Created**: 2026-08-01
+
 **Status**: Draft
 
 **Input**: User description: "Issue: https://github.com/dinnizluis/controle-financeiro/issues/10"
