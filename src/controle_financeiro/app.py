@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 
 from controle_financeiro.models import (
     FixedCostInput,
@@ -16,6 +17,9 @@ from controle_financeiro.models import (
 )
 from controle_financeiro.service import BudgetService
 from controle_financeiro.storage import DomainLockError, SqliteBudgetRepository
+
+ACCESS_PASSWORD_SECRET_KEY = "APP_ACCESS_PASSWORD"
+ACCESS_UNLOCKED_SESSION_KEY = "app_access_unlocked"
 
 
 @st.cache_resource
@@ -41,10 +45,59 @@ def _datetime_label(value: Any) -> str:
     return value.strftime("%Y-%m-%d %H:%M")
 
 
+def _get_configured_access_password() -> str | None:
+    try:
+        configured_password = st.secrets.get(ACCESS_PASSWORD_SECRET_KEY)
+    except StreamlitSecretNotFoundError:
+        return None
+
+    if not isinstance(configured_password, str):
+        return None
+    if not configured_password.strip():
+        return None
+    return configured_password
+
+
+def _is_access_unlocked() -> bool:
+    return bool(st.session_state.get(ACCESS_UNLOCKED_SESSION_KEY, False))
+
+
+def _set_access_unlocked(value: bool) -> None:
+    st.session_state[ACCESS_UNLOCKED_SESSION_KEY] = value
+
+
+def _render_password_gate() -> bool:
+    configured_password = _get_configured_access_password()
+    if configured_password is None:
+        _set_access_unlocked(False)
+        st.error(
+            "Configuracao de acesso indisponivel. Defina APP_ACCESS_PASSWORD nos secrets para desbloquear o app."
+        )
+        return False
+
+    if _is_access_unlocked():
+        return True
+
+    st.subheader("Acesso protegido")
+    st.caption("Informe a senha compartilhada para carregar o painel financeiro.")
+    with st.form("password_gate_form"):
+        entered_password = st.text_input("Senha de acesso", type="password")
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
+            if entered_password == configured_password:
+                _set_access_unlocked(True)
+                st.rerun()
+            st.error("Senha invalida.")
+    return False
+
+
 def main() -> None:
     st.set_page_config(page_title="controle-financeiro", layout="wide")
     st.title("Controle Financeiro")
     st.caption("Execucao da Spec001: modelo por ciclo com custos fixos e despesas variaveis.")
+
+    if not _render_password_gate():
+        return
 
     service = get_service()
     today = datetime.now(UTC).date()

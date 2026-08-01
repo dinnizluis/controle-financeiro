@@ -37,3 +37,6 @@ Example:
 
 - [2026-07-31-mvp-foundation-plan.md](2026-07-31-mvp-foundation-plan.md): first versioned plan
 	for the application MVP, backlog themes, milestones, and validation strategy.
+- [2026-08-01-authentication-and-publishing-plan.md](2026-08-01-authentication-and-publishing-plan.md):
+	security plan that makes authentication, authorization, and publish-readiness mandatory before
+	hosting sensitive personal financial data.
