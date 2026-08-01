@@ -34,13 +34,13 @@ CONTROLE_FINANCEIRO_DB_PATH=/caminho/para/budget.sqlite .venv/bin/streamlit run 
 
 1. Leia a [Constituicao do Projeto](.specify/memory/constitution.md). Ela define as regras que
 	 nao podem ser flexibilizadas: integridade financeira, `Decimal`, ciclos, locks e testes.
-2. Leia o [Fluxo de IA](docs/ai-workflow.md) para entender a sequencia completa e os pontos de
+2. Leia o [Fluxo de IA](docs/process/ai-workflow.md) para entender a sequencia completa e os pontos de
 	 aprovacao humana.
 3. Para uma nova funcionalidade, abra o chat do Copilot no repositorio e execute
 	 [`/speckit.refine`](.github/prompts/speckit.refine.prompt.md) com o escopo informado pelo
 	 usuario.
-4. Use a [Definition of Done](docs/definition-of-done.md), a
-	 [Checklist de Aceite](docs/acceptance-checklist.md) e a
+4. Use a [Definition of Done](docs/process/definition-of-done.md), a
+	[Checklist de Aceite](docs/process/acceptance-checklist.md) e a
 	 [Checklist de Revisao por Risco](docs/review/risk-first-review-checklist.md) antes de aprovar
 	 uma entrega.
 
@@ -81,7 +81,7 @@ comando; os links acima mostram as instrucoes completas que o Copilot executa.
 	explicita. Sem `gh` autenticado, ele salva o conteudo aprovado em `backlog/<slug>.md`.
 - Cada Issue deve ter uma historia de usuario INVEST, cenarios Gherkin e uma matriz
 	`cenario -> camada de teste -> arquivo planejado`.
-- `specs/` e a fonte de verdade para features novas. Os arquivos em `docs/issues/` sao registros
+- `specs/` e a fonte de verdade para features novas. Os arquivos em `docs/history/feature-specs/` sao registros
 	historicos.
 - `/speckit.taskstoissues` nao faz parte do fluxo normal: `tasks.md` e o registro detalhado de
 	execucao. Use-o apenas quando a equipe decidir dividir uma entrega em varias Issues.
@@ -94,7 +94,7 @@ As regras de dinheiro, datas, ciclos, locks e resumos recebem testes determinist
 Persistencia usa SQLite temporario. Fluxos Streamlit e estados visiveis usam
 `streamlit.testing.v1.AppTest`. Invariantes de alto valor podem usar Hypothesis.
 
-O guia [Testes de Regressao](docs/regression-testing.md) descreve como mapear um cenario Gherkin
+O guia [Testes de Regressao](docs/process/regression-testing.md) descreve como mapear um cenario Gherkin
 para a camada e o arquivo de teste corretos. O exemplo inicial esta em
 [tests/test_ui_regression.py](tests/test_ui_regression.py).
 
@@ -119,20 +119,22 @@ dependencias Python e GitHub Actions sob revisao semanal.
 ```text
 .github/                 Comandos Copilot, templates e automacao de CI
 .specify/                Constituicao, scripts e templates do Spec Kit
-docs/                    Guias de processo, aceite e revisao
-specs/                   Especificacoes versionadas por feature
+docs/                    Processo, historico, revisao e planos de evolucao
+specs/                   Especificacoes versionadas por feature e planos amplos de evolucao
 src/controle_financeiro/ Dominio, servicos, persistencia e interface Streamlit
 tests/                   Testes de contrato e regressao de UI
 ```
 
 ## Referencias Operacionais
 
-- [Fluxo de IA](docs/ai-workflow.md)
+- [Mapa da Documentacao](docs/README.md)
+- [Fluxo de IA](docs/process/ai-workflow.md)
 - [Constituicao do Projeto](.specify/memory/constitution.md)
-- [Definition of Done](docs/definition-of-done.md)
-- [Checklist de Aceite](docs/acceptance-checklist.md)
+- [Definition of Done](docs/process/definition-of-done.md)
+- [Checklist de Aceite](docs/process/acceptance-checklist.md)
 - [Checklist de Revisao por Risco](docs/review/risk-first-review-checklist.md)
-- [Testes de Regressao](docs/regression-testing.md)
+- [Testes de Regressao](docs/process/regression-testing.md)
+- [Planos de Evolucao](docs/evolution/README.md)
 - [Template de Issue de Feature](.github/ISSUE_TEMPLATE/feature.md)
 - [Template de Pull Request](.github/pull_request_template.md)
 

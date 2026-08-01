@@ -27,7 +27,7 @@ Scenario: User sees empty fixed-cost guidance
 
 This maps to a UI regression test that creates a temporary SQLite database, sets
 `CONTROLE_FINANCEIRO_DB_PATH`, runs `AppTest.from_file("streamlit_app.py")`, and asserts the
-visible form and guidance. The existing [test_ui_regression.py](../tests/test_ui_regression.py)
+visible form and guidance. The existing [test_ui_regression.py](../../tests/test_ui_regression.py)
 is the reference implementation.
 
 ## UI Test Rules

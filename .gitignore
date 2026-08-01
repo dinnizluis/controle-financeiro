@@ -1,4 +1,4 @@
-.venv/
+.venv*/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -9,5 +9,4 @@ htmlcov/
 data/*.db
 *.sqlite3
 *.pyc
-.venv312/
 .agents/

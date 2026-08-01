@@ -29,8 +29,8 @@ Read these files before drafting:
 
 - `.specify/memory/constitution.md`
 - `.github/ISSUE_TEMPLATE/feature.md`
-- `docs/ai-workflow.md`
-- `docs/definition-of-done.md`
+- `docs/process/ai-workflow.md`
+- `docs/process/definition-of-done.md`
 - `docs/review/risk-first-review-checklist.md`
 - `specs/README.md`
 

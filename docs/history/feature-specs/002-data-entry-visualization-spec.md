@@ -23,8 +23,8 @@ Deliver the next MVP slice so users can create, edit, and review cycle data in o
 - Transaction import.
 - Expense categorization.
 - Multi-user support and authentication.
-- Weekly invoice check-in (removed from scope entirely; see amendment in [docs/issues/001-data-model-spec.md](001-data-model-spec.md)).
-- Final invoice total tracking as part of month income (removed; see amendment in [docs/issues/001-data-model-spec.md](001-data-model-spec.md)).
+- Weekly invoice check-in (removed from scope entirely; see amendment in [001-data-model-spec.md](001-data-model-spec.md)).
+- Final invoice total tracking as part of month income (removed; see amendment in [001-data-model-spec.md](001-data-model-spec.md)).
 
 ## Business Rules
 

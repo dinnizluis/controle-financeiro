@@ -2,7 +2,7 @@
 
 ## How To Use
 
-1. Start from the requirement statement in [docs/issues/001-data-model-spec.md](../issues/001-data-model-spec.md).
+1. Start from the requirement statement in [docs/history/feature-specs/001-data-model-spec.md](../history/feature-specs/001-data-model-spec.md).
 2. Confirm implementation pointers.
 3. Confirm test evidence in [tests/test_spec001_contract.py](../../tests/test_spec001_contract.py).
 4. Mark gaps explicitly.
@@ -17,8 +17,8 @@
 | Updates allowed through `end_date`, blocked from D+1 | `_assert_unlocked` in [src/controle_financeiro/storage.py](../../src/controle_financeiro/storage.py) | `test_updates_allowed_through_end_date_blocked_d_plus_one` and monthly close lock test in [tests/test_spec001_contract.py](../../tests/test_spec001_contract.py) | Covered |  |
 | Fixed costs are month-scoped instances and direct update allowed pre-lock | `save_fixed_cost` update path in [src/controle_financeiro/storage.py](../../src/controle_financeiro/storage.py) | `test_fixed_cost_month_instance_allows_direct_update_before_lock` in [tests/test_spec001_contract.py](../../tests/test_spec001_contract.py) | Covered |  |
 | Variable expenses support optional due date | `VariableExpenseInput.due_date` in [src/controle_financeiro/models.py](../../src/controle_financeiro/models.py) and ORM `due_date` in [src/controle_financeiro/storage.py](../../src/controle_financeiro/storage.py) | No direct test for due_date persistence | Gap | Add contract test for create/read with due date |
-| Duplicate weekly check-ins keep history and switch current row | Removed (2026-07-19): `WeeklyInvoiceCheckpoint` was removed from scope per amendment in [docs/issues/001-data-model-spec.md](../issues/001-data-model-spec.md) | N/A | Removed | Superseded by itemized variable expenses; see amendment rationale |
-| Month close has one row per cycle and can update until lock | Amended (2026-07-19): renamed to `MonthlyIncome`, `final_invoice_total` dropped; `save_monthly_income` in [src/controle_financeiro/storage.py](../../src/controle_financeiro/storage.py) | `test_monthly_income_can_update_until_end_date_then_locks` in [tests/test_spec001_contract.py](../../tests/test_spec001_contract.py) | Covered | See amendment in [docs/issues/001-data-model-spec.md](../issues/001-data-model-spec.md) |
+| Duplicate weekly check-ins keep history and switch current row | Removed (2026-07-19): `WeeklyInvoiceCheckpoint` was removed from scope per amendment in [docs/history/feature-specs/001-data-model-spec.md](../history/feature-specs/001-data-model-spec.md) | N/A | Removed | Superseded by itemized variable expenses; see amendment rationale |
+| Month close has one row per cycle and can update until lock | Amended (2026-07-19): renamed to `MonthlyIncome`, `final_invoice_total` dropped; `save_monthly_income` in [src/controle_financeiro/storage.py](../../src/controle_financeiro/storage.py) | `test_monthly_income_can_update_until_end_date_then_locks` in [tests/test_spec001_contract.py](../../tests/test_spec001_contract.py) | Covered | See amendment in [docs/history/feature-specs/001-data-model-spec.md](../history/feature-specs/001-data-model-spec.md) |
 | Summary exposes deterministic status and projected margin | `BudgetService.get_summary` in [src/controle_financeiro/service.py](../../src/controle_financeiro/service.py) | `test_summary_status_thresholds_after_monthly_income` and `test_summary_status_open_without_monthly_income` in [tests/test_spec001_contract.py](../../tests/test_spec001_contract.py) | Covered |  |
 
 ## Exit Criteria
