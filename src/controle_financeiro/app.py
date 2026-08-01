@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -43,7 +43,7 @@ def main() -> None:
     st.caption("Execucao da Spec001: modelo por ciclo com custos fixos e despesas variaveis.")
 
     service = get_service()
-    today = date.today()
+    today = datetime.now(UTC).date()
     default_month = date(today.year, today.month, 1)
 
     with st.sidebar:
@@ -130,7 +130,9 @@ def main() -> None:
                     key=f"fixed_due_date_edit_{selected_fixed.id}",
                 )
                 edit_is_active = st.checkbox(
-                    "Ativo", value=selected_fixed.is_active, key=f"fixed_active_edit_{selected_fixed.id}"
+                    "Ativo",
+                    value=selected_fixed.is_active,
+                    key=f"fixed_active_edit_{selected_fixed.id}",
                 )
                 edit_submitted = st.form_submit_button("Atualizar custo fixo")
                 if edit_submitted:
@@ -162,7 +164,12 @@ def main() -> None:
         )
         fixed_sort = st.selectbox(
             "Ordenacao",
-            options=["Mais recentes", "Mais antigos", "Vencimento crescente", "Vencimento decrescente"],
+            options=[
+                "Mais recentes",
+                "Mais antigos",
+                "Vencimento crescente",
+                "Vencimento decrescente",
+            ],
             key="fixed_sort",
         )
 
@@ -279,14 +286,21 @@ def main() -> None:
         variable_query = st.text_input("Buscar por descricao", key="variable_query")
         variable_sort = st.selectbox(
             "Ordenacao",
-            options=["Mais recentes", "Mais antigos", "Vencimento crescente", "Vencimento decrescente"],
+            options=[
+                "Mais recentes",
+                "Mais antigos",
+                "Vencimento crescente",
+                "Vencimento decrescente",
+            ],
             key="variable_sort",
         )
 
         filtered_variable = variable_expenses
         if variable_query.strip():
             query = variable_query.strip().lower()
-            filtered_variable = [item for item in filtered_variable if query in item.description.lower()]
+            filtered_variable = [
+                item for item in filtered_variable if query in item.description.lower()
+            ]
 
         if variable_sort == "Mais antigos":
             filtered_variable = sorted(filtered_variable, key=lambda item: item.created_at)
@@ -318,19 +332,25 @@ def main() -> None:
         existing_monthly_income = service.get_monthly_income(cycle_key)
 
         st.subheader("Cadastrar ou editar renda do ciclo")
-        st.caption("Registre a renda e a saida de caixa para reserva deste ciclo. Nao ha uma etapa de fechamento: o ciclo trava automaticamente apos a data limite.")
+        st.caption(
+            "Registre a renda e a saida de caixa para reserva deste ciclo. Nao ha uma etapa de fechamento: o ciclo trava automaticamente apos a data limite."
+        )
         with st.form("monthly_income_form"):
             income_total = st.number_input(
                 "Renda total",
                 min_value=0.0,
                 step=100.0,
-                value=float(existing_monthly_income.income_total) if existing_monthly_income else 0.0,
+                value=float(existing_monthly_income.income_total)
+                if existing_monthly_income
+                else 0.0,
             )
             reserve_cash_outflow = st.number_input(
                 "Saida de caixa para reserva",
                 min_value=0.0,
                 step=10.0,
-                value=float(existing_monthly_income.reserve_cash_outflow) if existing_monthly_income else 0.0,
+                value=float(existing_monthly_income.reserve_cash_outflow)
+                if existing_monthly_income
+                else 0.0,
             )
             submitted = st.form_submit_button(
                 "Atualizar renda do ciclo" if existing_monthly_income else "Salvar renda do ciclo"

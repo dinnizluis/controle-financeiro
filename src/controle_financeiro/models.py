@@ -1,18 +1,17 @@
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
-import calendar
 
 from pydantic import BaseModel, Field, field_validator
-
 
 MONEY_QUANTUM = Decimal("0.01")
 
 
-def as_money(value: Decimal | int | float | str) -> Decimal:
+def as_money(value: Decimal | float | str) -> Decimal:
     return Decimal(str(value)).quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
 
 
@@ -30,7 +29,12 @@ def parse_month_key(cycle_key: str) -> tuple[int, int]:
         raise ValueError("invalid cycle key")
 
     year_part, month_part = parts
-    if len(year_part) != 4 or len(month_part) != 2 or not year_part.isdigit() or not month_part.isdigit():
+    if (
+        len(year_part) != 4
+        or len(month_part) != 2
+        or not year_part.isdigit()
+        or not month_part.isdigit()
+    ):
         raise ValueError("invalid cycle key")
 
     year, month = int(year_part), int(month_part)

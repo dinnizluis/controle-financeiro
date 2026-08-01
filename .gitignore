@@ -2,6 +2,9 @@
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+.coverage*
+htmlcov/
+*.egg-info/
 .streamlit/secrets.toml
 data/*.db
 *.sqlite3

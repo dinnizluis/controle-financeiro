@@ -6,8 +6,8 @@ from sqlalchemy import select
 
 from controle_financeiro.models import (
     FixedCostInput,
-    MonthSummaryStatus,
     MonthlyIncomeInput,
+    MonthSummaryStatus,
     VariableExpenseInput,
     cycle_window,
 )
@@ -46,14 +46,18 @@ def test_fixed_cost_month_instance_allows_direct_update_before_lock(tmp_path):
 
     item = service.add_fixed_cost(
         "2026-07",
-        FixedCostInput(name="Rent", amount=Decimal("2500.00"), due_date=date(2026, 8, 5), is_active=True),
+        FixedCostInput(
+            name="Rent", amount=Decimal("2500.00"), due_date=date(2026, 8, 5), is_active=True
+        ),
         current_date=date(2026, 8, 10),
     )
 
     updated = service.update_fixed_cost(
         "2026-07",
         item.id,
-        FixedCostInput(name="Rent", amount=Decimal("2600.00"), due_date=date(2026, 8, 6), is_active=True),
+        FixedCostInput(
+            name="Rent", amount=Decimal("2600.00"), due_date=date(2026, 8, 6), is_active=True
+        ),
         current_date=date(2026, 8, 10),
     )
 
@@ -96,7 +100,9 @@ def test_variable_expense_update_is_blocked_after_lock(tmp_path):
 
     created = service.add_variable_expense(
         "2026-07",
-        VariableExpenseInput(description="Books", amount=Decimal("80.00"), due_date=date(2026, 8, 20)),
+        VariableExpenseInput(
+            description="Books", amount=Decimal("80.00"), due_date=date(2026, 8, 20)
+        ),
         current_date=date(2026, 8, 20),
     )
 
@@ -104,7 +110,9 @@ def test_variable_expense_update_is_blocked_after_lock(tmp_path):
         service.update_variable_expense(
             "2026-07",
             created.id,
-            VariableExpenseInput(description="Books", amount=Decimal("90.00"), due_date=date(2026, 8, 21)),
+            VariableExpenseInput(
+                description="Books", amount=Decimal("90.00"), due_date=date(2026, 8, 21)
+            ),
             current_date=date(2026, 8, 29),
         )
 
@@ -185,7 +193,9 @@ def test_invalid_cycle_key_month_is_rejected(tmp_path):
         ),
     ],
 )
-def test_summary_status_thresholds_after_monthly_income(tmp_path, income_payload, expected_status, expected_margin):
+def test_summary_status_thresholds_after_monthly_income(
+    tmp_path, income_payload, expected_status, expected_margin
+):
     repository = SqliteBudgetRepository(tmp_path / "db.sqlite")
     service = BudgetService(repository)
 
