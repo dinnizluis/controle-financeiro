@@ -2,7 +2,7 @@ Metadata-Version: 2.4
 Name: controle-financeiro
 Version: 0.1.0
 Summary: Personal budget MVP with cycle-based planning
-Requires-Python: >=3.11
+Requires-Python: <3.13,>=3.11
 Description-Content-Type: text/markdown
 Requires-Dist: streamlit>=1.37
 Requires-Dist: sqlalchemy>=2.0

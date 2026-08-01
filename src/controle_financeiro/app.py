@@ -114,20 +114,24 @@ def main() -> None:
             )
             selected_fixed = fixed_options[selected_fixed_id]
             with st.form("fixed_cost_edit_form"):
-                edit_name = st.text_input("Nome", value=selected_fixed.name, key="fixed_name_edit")
+                edit_name = st.text_input(
+                    "Nome", value=selected_fixed.name, key=f"fixed_name_edit_{selected_fixed.id}"
+                )
                 edit_amount = st.number_input(
                     "Valor",
                     min_value=0.0,
                     step=10.0,
                     value=float(selected_fixed.amount),
-                    key="fixed_amount_edit",
+                    key=f"fixed_amount_edit_{selected_fixed.id}",
                 )
                 edit_due_date = st.date_input(
                     "Data de vencimento",
                     value=selected_fixed.due_date,
-                    key="fixed_due_date_edit",
+                    key=f"fixed_due_date_edit_{selected_fixed.id}",
                 )
-                edit_is_active = st.checkbox("Ativo", value=selected_fixed.is_active, key="fixed_active_edit")
+                edit_is_active = st.checkbox(
+                    "Ativo", value=selected_fixed.is_active, key=f"fixed_active_edit_{selected_fixed.id}"
+                )
                 edit_submitted = st.form_submit_button("Atualizar custo fixo")
                 if edit_submitted:
                     try:
@@ -236,19 +240,19 @@ def main() -> None:
                 edit_description = st.text_input(
                     "Descricao",
                     value=selected_variable.description,
-                    key="variable_description_edit",
+                    key=f"variable_description_edit_{selected_variable.id}",
                 )
                 edit_amount = st.number_input(
                     "Valor",
                     min_value=0.0,
                     step=10.0,
                     value=float(selected_variable.amount),
-                    key="variable_amount_edit",
+                    key=f"variable_amount_edit_{selected_variable.id}",
                 )
                 edit_due_date = st.date_input(
                     "Data de vencimento",
                     value=selected_variable.due_date,
-                    key="variable_due_date_edit",
+                    key=f"variable_due_date_edit_{selected_variable.id}",
                 )
                 edit_submitted = st.form_submit_button("Atualizar despesa variavel")
                 if edit_submitted:

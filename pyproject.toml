@@ -7,7 +7,7 @@ name = "controle-financeiro"
 version = "0.1.0"
 description = "Personal budget MVP with cycle-based planning"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 dependencies = [
   "streamlit>=1.37",
   "sqlalchemy>=2.0",
