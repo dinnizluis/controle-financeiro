@@ -8,6 +8,17 @@
 
 **Input**: User description: "Issue: https://github.com/dinnizluis/controle-financeiro/issues/10"
 
+## Execution Scope Override (MVP-0)
+
+Current execution scope is intentionally reduced to the smallest privacy barrier:
+
+- Single shared password gate via `st.secrets` (`APP_ACCESS_PASSWORD`)
+- Block all financial initialization/rendering before valid password
+- Fail-closed when password config is missing/invalid
+- No logout flow in this slice
+
+The OIDC + allowlist + logout model remains valid as future evolution and is intentionally deferred.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Block anonymous access before data load (Priority: P1)
@@ -221,3 +232,18 @@ coverage even when its UI flow is tested.
 - Allowlist values are maintained by the app owner through secure deployment secrets.
 - Forced session-expiration enforcement based on token lifetime is handled by a later feature slice.
 - Existing dashboard and monthly workflow behavior stays unchanged for authorized users.
+
+## Delivery Sizing (MVP-0)
+
+Sizing for issue #10 uses a lightweight complexity heuristic documented in `tasks.md`:
+
+- Score per task = `B (blast radius) + U (unknowns) + T (test load)`
+- Bands: XS (3-4), S (5-6), M (7-8), L (9)
+
+MVP-0 sizing snapshot:
+
+- Active MVP tasks: T001-T004
+- Total complexity score: 14
+- Average task score: 3.5 (XS)
+- Critical path estimate: ~1.5 working days
+- Consolidated worst-case estimate (integration + validation buffer): **~1 working day**
