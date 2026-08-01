@@ -267,12 +267,47 @@ Check if `.specify/extensions.yml` exists in the project root.
     To execute: `/{command}`
     ```
 
+## GitHub Traceability Update (Mandatory When Issue Is Referenced)
+
+If the user input includes a GitHub Issue reference (URL like
+`https://github.com/<owner>/<repo>/issues/<number>` or a clear `#<number>` reference), you MUST
+update that issue after the spec and checklist are created.
+
+Required behavior:
+
+1. Resolve the issue number from the input arguments.
+2. Build a short traceability update containing at least:
+   - `SPECIFY_FEATURE_DIRECTORY`
+   - `SPEC_FILE`
+   - checklist path (`SPECIFY_FEATURE_DIRECTORY/checklists/requirements.md`)
+   - current branch name (if available)
+   - readiness status (`Ready for /speckit.plan` or `Needs /speckit.clarify`)
+3. Publish the update to the GitHub issue as a comment (preferred) so audit history is preserved.
+4. If issue update fails (for example `gh` unavailable/auth failure/network error):
+   - report the exact failure in the completion output;
+   - do not claim issue traceability update succeeded.
+
+Suggested comment format:
+
+```markdown
+## Spec Traceability Update
+
+- Feature directory: `SPECIFY_FEATURE_DIRECTORY`
+- Spec file: `SPEC_FILE`
+- Requirements checklist: `SPECIFY_FEATURE_DIRECTORY/checklists/requirements.md`
+- Branch: `<branch-name>`
+- Status: `<Ready for /speckit.plan | Needs /speckit.clarify>`
+
+Source: `/speckit.specify`
+```
+
 ## Completion Report
 
 Report completion to the user with:
 - `SPECIFY_FEATURE_DIRECTORY` — the feature directory path
 - `SPEC_FILE` — the spec file path
 - Checklist results summary
+- GitHub issue traceability update status (updated issue number/link, or explicit failure reason)
 - Readiness for the next phase (`/speckit.clarify` or `/speckit.plan`)
 
 **NOTE:** Branch creation is handled by the `before_specify` hook (git extension). Spec directory and file creation are always handled by this core command.
