@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^brew info python@3\\.12 --json=v2 2>/dev/null \\| rg -o '\"installed\"\\|\"version\"\\\\s\\*:\\\\s\\*\"\\[\\^\"\\]\\+\"' \\| head -20; command -v python3\\.12 \\|\\| true$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
