@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -50,7 +50,7 @@ def test_display_format_helpers_cover_empty_and_populated_values():
     assert app._money(Decimal("1234.5")) == "R$ 1.234,50"
     assert app._date_label(None) == "-"
     assert app._date_label(date(2026, 8, 1)) == "2026-08-01"
-    assert app._datetime_label(datetime(2026, 8, 1, 11, 52)) == "2026-08-01 11:52"
+    assert app._datetime_label(datetime(2026, 8, 1, 11, 52, tzinfo=UTC)) == "2026-08-01 11:52"
 
 
 def test_get_service_uses_database_path_from_environment(monkeypatch, tmp_path):
