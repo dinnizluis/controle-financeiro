@@ -5,9 +5,9 @@ from decimal import Decimal
 
 from controle_financeiro.models import (
     FixedCostInput,
+    MonthlyIncomeInput,
     MonthSummary,
     MonthSummaryStatus,
-    MonthlyIncomeInput,
     VariableExpenseInput,
     as_money,
 )
@@ -19,9 +19,13 @@ class BudgetService:
         self.repository = repository
 
     def add_fixed_cost(self, cycle_key: str, payload: FixedCostInput, current_date: date):
-        return self.repository.save_fixed_cost(cycle_key=cycle_key, payload=payload, current_date=current_date)
+        return self.repository.save_fixed_cost(
+            cycle_key=cycle_key, payload=payload, current_date=current_date
+        )
 
-    def update_fixed_cost(self, cycle_key: str, fixed_cost_id: str, payload: FixedCostInput, current_date: date):
+    def update_fixed_cost(
+        self, cycle_key: str, fixed_cost_id: str, payload: FixedCostInput, current_date: date
+    ):
         return self.repository.save_fixed_cost(
             cycle_key=cycle_key,
             payload=payload,
@@ -32,11 +36,19 @@ class BudgetService:
     def list_fixed_costs(self, cycle_key: str):
         return self.repository.list_fixed_costs(cycle_key)
 
-    def add_variable_expense(self, cycle_key: str, payload: VariableExpenseInput, current_date: date):
-        return self.repository.save_variable_expense(cycle_key=cycle_key, payload=payload, current_date=current_date)
+    def add_variable_expense(
+        self, cycle_key: str, payload: VariableExpenseInput, current_date: date
+    ):
+        return self.repository.save_variable_expense(
+            cycle_key=cycle_key, payload=payload, current_date=current_date
+        )
 
     def update_variable_expense(
-        self, cycle_key: str, variable_expense_id: str, payload: VariableExpenseInput, current_date: date
+        self,
+        cycle_key: str,
+        variable_expense_id: str,
+        payload: VariableExpenseInput,
+        current_date: date,
     ):
         return self.repository.save_variable_expense(
             cycle_key=cycle_key,
@@ -49,7 +61,9 @@ class BudgetService:
         return self.repository.list_variable_expenses(cycle_key)
 
     def save_monthly_income(self, cycle_key: str, payload: MonthlyIncomeInput, current_date: date):
-        return self.repository.save_monthly_income(cycle_key=cycle_key, payload=payload, current_date=current_date)
+        return self.repository.save_monthly_income(
+            cycle_key=cycle_key, payload=payload, current_date=current_date
+        )
 
     def get_monthly_income(self, cycle_key: str):
         return self.repository.get_monthly_income(cycle_key)
@@ -62,10 +76,12 @@ class BudgetService:
         total_fixed_cost = as_money(
             sum((item.amount for item in fixed_costs if item.is_active), start=Decimal("0.00"))
         )
-        total_variable_expense = as_money(sum((item.amount for item in variable_expenses), start=Decimal("0.00")))
+        total_variable_expense = as_money(
+            sum((item.amount for item in variable_expenses), start=Decimal("0.00"))
+        )
 
         if monthly_income is None:
-            projected_margin = as_money((total_fixed_cost + total_variable_expense) * Decimal("-1"))
+            projected_margin = as_money((total_fixed_cost + total_variable_expense) * Decimal(-1))
             status = MonthSummaryStatus.OPEN
         else:
             projected_margin = as_money(

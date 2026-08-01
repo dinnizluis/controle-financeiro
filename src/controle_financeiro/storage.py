@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-import uuid
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
@@ -48,7 +48,9 @@ class FixedCostORM(Base):
     __tablename__ = "fixed_costs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    month_cycle_id: Mapped[str] = mapped_column(String(36), ForeignKey("month_cycles.id"), nullable=False, index=True)
+    month_cycle_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("month_cycles.id"), nullable=False, index=True
+    )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -61,7 +63,9 @@ class VariableExpenseORM(Base):
     __tablename__ = "variable_expenses"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    month_cycle_id: Mapped[str] = mapped_column(String(36), ForeignKey("month_cycles.id"), nullable=False, index=True)
+    month_cycle_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("month_cycles.id"), nullable=False, index=True
+    )
     description: Mapped[str] = mapped_column(String(160), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -73,7 +77,9 @@ class MonthlyIncomeORM(Base):
     __tablename__ = "monthly_income"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    month_cycle_id: Mapped[str] = mapped_column(String(36), ForeignKey("month_cycles.id"), nullable=False, unique=True)
+    month_cycle_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("month_cycles.id"), nullable=False, unique=True
+    )
     income_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     reserve_cash_outflow: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -311,7 +317,9 @@ class SqliteBudgetRepository:
             cycle = self._ensure_cycle(session, cycle_key)
             self._assert_unlocked(cycle, current_date)
 
-            row = session.scalar(select(MonthlyIncomeORM).where(MonthlyIncomeORM.month_cycle_id == cycle.id))
+            row = session.scalar(
+                select(MonthlyIncomeORM).where(MonthlyIncomeORM.month_cycle_id == cycle.id)
+            )
             now = utc_now()
             if row is None:
                 row = MonthlyIncomeORM(
@@ -344,7 +352,9 @@ class SqliteBudgetRepository:
             cycle = self._get_cycle(session, cycle_key)
             if cycle is None:
                 return None
-            row = session.scalar(select(MonthlyIncomeORM).where(MonthlyIncomeORM.month_cycle_id == cycle.id))
+            row = session.scalar(
+                select(MonthlyIncomeORM).where(MonthlyIncomeORM.month_cycle_id == cycle.id)
+            )
             if row is None:
                 return None
             return MonthlyIncomeRecord(
