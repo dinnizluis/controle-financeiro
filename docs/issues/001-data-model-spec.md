@@ -196,3 +196,17 @@ Define the minimum domain model for the first implementation phase of the budget
 
 - This issue should be used as the source of truth before writing the first domain code.
 - The next step after this issue is to translate the spec into models and persistence rules.
+
+## Amendment (2026-07-19): Weekly Check-in Removed
+
+- Decision: remove `WeeklyInvoiceCheckpoint` entirely from scope and implementation.
+- Rationale: the user's spending is almost entirely on credit card (to accumulate miles), and itemized variable expenses cover that same spend. Keeping both created a real double-counting risk in the projected margin formula (fixed + variable + open invoice total), not just a UX overlap.
+- Trade-off accepted: loses weekly reconciliation against the bank-reported invoice and loses the intra-month trend view. Deemed acceptable for MVP; a future detailed invoice import is expected to provide deeper reconciliation instead.
+- Impact: `WeeklyCheckinInput`, `WeeklyCheckinRecord`, `WeeklyInvoiceCheckpoint` ORM/table, related service/repository methods, and the UI tab are removed. `MonthSummary` no longer exposes `latest_open_invoice_total`. Open-cycle projected margin is now `-(total_fixed_cost + total_variable_expense)`.
+
+## Amendment (2026-07-19): MonthlyClose Simplified to MonthlyIncome
+
+- Decision: rename `MonthlyClose` to `MonthlyIncome` and drop `final_invoice_total`. The entity keeps only `income_total` and `reserve_cash_outflow`, and it is no longer framed as a "closing" event.
+- Rationale: `final_invoice_total` carried the same double-counting risk as the removed weekly check-in, since card spend is already itemized via variable expenses. Separately, the cycle's write lock is already automatic and independent of this entity (`_assert_unlocked` gates on `end_date`, not on a "close" action), so there is no real "closing ceremony" to model — only a simple per-cycle income/reserve record.
+- Trade-off accepted: cross-month comparisons and any explicit "closed" audit marker are deferred to a future version; income and reserve are still captured so the projected margin and status classification (`healthy`/`attention`/`critical`) keep working.
+- Impact: `MonthlyCloseInput`/`MonthlyCloseRecord` renamed to `MonthlyIncomeInput`/`MonthlyIncomeRecord` (drops `final_invoice_total`, replaces `closed_at` with `created_at`/`updated_at`). `MonthlyCloseORM`/table `monthly_closes` renamed to `MonthlyIncomeORM`/table `monthly_income`. `save_monthly_close`/`get_monthly_close` renamed to `save_monthly_income`/`get_monthly_income`, and saving income no longer flips `MonthCycle.status` to `closed`. Closed-cycle projected margin is now `income_total - total_fixed_cost - total_variable_expense - reserve_cash_outflow`.

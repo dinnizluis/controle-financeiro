@@ -6,3 +6,5 @@ __pycache__/
 data/*.db
 *.sqlite3
 *.pyc
+.venv312/
+.agents/

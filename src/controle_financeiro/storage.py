@@ -13,12 +13,10 @@ from controle_financeiro.models import (
     FixedCostInput,
     FixedCostRecord,
     MonthCycleRecord,
-    MonthlyCloseInput,
-    MonthlyCloseRecord,
+    MonthlyIncomeInput,
+    MonthlyIncomeRecord,
     VariableExpenseInput,
     VariableExpenseRecord,
-    WeeklyCheckinInput,
-    WeeklyCheckinRecord,
     cycle_window,
     parse_month_key,
     utc_now,
@@ -71,26 +69,15 @@ class VariableExpenseORM(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-class WeeklyCheckinORM(Base):
-    __tablename__ = "weekly_invoice_checkpoints"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    month_cycle_id: Mapped[str] = mapped_column(String(36), ForeignKey("month_cycles.id"), nullable=False, index=True)
-    checkin_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    open_invoice_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class MonthlyCloseORM(Base):
-    __tablename__ = "monthly_closes"
+class MonthlyIncomeORM(Base):
+    __tablename__ = "monthly_income"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     month_cycle_id: Mapped[str] = mapped_column(String(36), ForeignKey("month_cycles.id"), nullable=False, unique=True)
     income_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    final_invoice_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     reserve_cash_outflow: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
-    closed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 def _id() -> str:
@@ -314,124 +301,57 @@ class SqliteBudgetRepository:
                 for row in rows
             ]
 
-    def save_weekly_checkin(
+    def save_monthly_income(
         self,
         cycle_key: str,
-        payload: WeeklyCheckinInput,
+        payload: MonthlyIncomeInput,
         current_date: date,
-    ) -> WeeklyCheckinRecord:
+    ) -> MonthlyIncomeRecord:
         with self._session() as session:
             cycle = self._ensure_cycle(session, cycle_key)
             self._assert_unlocked(cycle, current_date)
 
-            current_rows = session.scalars(
-                select(WeeklyCheckinORM).where(
-                    WeeklyCheckinORM.month_cycle_id == cycle.id,
-                    WeeklyCheckinORM.checkin_date == payload.checkin_date,
-                    WeeklyCheckinORM.is_current.is_(True),
-                )
-            ).all()
-            for row in current_rows:
-                row.is_current = False
-
-            row = WeeklyCheckinORM(
-                id=_id(),
-                month_cycle_id=cycle.id,
-                checkin_date=payload.checkin_date,
-                open_invoice_total=payload.open_invoice_total,
-                is_current=True,
-                created_at=utc_now(),
-            )
-            session.add(row)
-            session.commit()
-            session.refresh(row)
-            return WeeklyCheckinRecord(
-                id=row.id,
-                month_cycle_id=row.month_cycle_id,
-                checkin_date=row.checkin_date,
-                open_invoice_total=row.open_invoice_total,
-                is_current=row.is_current,
-                created_at=row.created_at,
-            )
-
-    def list_weekly_checkins(self, cycle_key: str) -> list[WeeklyCheckinRecord]:
-        with self._session() as session:
-            cycle = self._get_cycle(session, cycle_key)
-            if cycle is None:
-                return []
-            rows = session.scalars(
-                select(WeeklyCheckinORM)
-                .where(WeeklyCheckinORM.month_cycle_id == cycle.id)
-                .order_by(WeeklyCheckinORM.checkin_date.desc(), WeeklyCheckinORM.created_at.desc())
-            ).all()
-            return [
-                WeeklyCheckinRecord(
-                    id=row.id,
-                    month_cycle_id=row.month_cycle_id,
-                    checkin_date=row.checkin_date,
-                    open_invoice_total=row.open_invoice_total,
-                    is_current=row.is_current,
-                    created_at=row.created_at,
-                )
-                for row in rows
-            ]
-
-    def save_monthly_close(
-        self,
-        cycle_key: str,
-        payload: MonthlyCloseInput,
-        current_date: date,
-    ) -> MonthlyCloseRecord:
-        with self._session() as session:
-            cycle = self._ensure_cycle(session, cycle_key)
-            self._assert_unlocked(cycle, current_date)
-
-            row = session.scalar(select(MonthlyCloseORM).where(MonthlyCloseORM.month_cycle_id == cycle.id))
+            row = session.scalar(select(MonthlyIncomeORM).where(MonthlyIncomeORM.month_cycle_id == cycle.id))
             now = utc_now()
             if row is None:
-                row = MonthlyCloseORM(
+                row = MonthlyIncomeORM(
                     id=_id(),
                     month_cycle_id=cycle.id,
                     income_total=payload.income_total,
-                    final_invoice_total=payload.final_invoice_total,
                     reserve_cash_outflow=payload.reserve_cash_outflow,
-                    closed_at=now,
+                    created_at=now,
+                    updated_at=now,
                 )
                 session.add(row)
             else:
                 row.income_total = payload.income_total
-                row.final_invoice_total = payload.final_invoice_total
                 row.reserve_cash_outflow = payload.reserve_cash_outflow
-                row.closed_at = now
-
-            cycle.status = CycleStatus.CLOSED.value
-            cycle.closed_at = now
-            cycle.updated_at = now
+                row.updated_at = now
 
             session.commit()
             session.refresh(row)
-            return MonthlyCloseRecord(
+            return MonthlyIncomeRecord(
                 id=row.id,
                 month_cycle_id=row.month_cycle_id,
                 income_total=row.income_total,
-                final_invoice_total=row.final_invoice_total,
                 reserve_cash_outflow=row.reserve_cash_outflow,
-                closed_at=row.closed_at,
+                created_at=row.created_at,
+                updated_at=row.updated_at,
             )
 
-    def get_monthly_close(self, cycle_key: str) -> MonthlyCloseRecord | None:
+    def get_monthly_income(self, cycle_key: str) -> MonthlyIncomeRecord | None:
         with self._session() as session:
             cycle = self._get_cycle(session, cycle_key)
             if cycle is None:
                 return None
-            row = session.scalar(select(MonthlyCloseORM).where(MonthlyCloseORM.month_cycle_id == cycle.id))
+            row = session.scalar(select(MonthlyIncomeORM).where(MonthlyIncomeORM.month_cycle_id == cycle.id))
             if row is None:
                 return None
-            return MonthlyCloseRecord(
+            return MonthlyIncomeRecord(
                 id=row.id,
                 month_cycle_id=row.month_cycle_id,
                 income_total=row.income_total,
-                final_invoice_total=row.final_invoice_total,
                 reserve_cash_outflow=row.reserve_cash_outflow,
-                closed_at=row.closed_at,
+                created_at=row.created_at,
+                updated_at=row.updated_at,
             )
